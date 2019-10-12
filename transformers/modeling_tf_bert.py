@@ -473,22 +473,33 @@ class TFBertMainLayer(tf.keras.layers.Layer):
     def call(self, inputs, attention_mask=None, token_type_ids=None, position_ids=None, head_mask=None, training=False):
         if isinstance(inputs, (tuple, list)):
             input_ids = inputs[0]
+            input_ids = tf.cast(input_ids, dtype=tf.int32)
             attention_mask = inputs[1] if len(inputs) > 1 else attention_mask
             token_type_ids = inputs[2] if len(inputs) > 2 else token_type_ids
+            token_type_ids = tf.cast(token_type_ids, dtype=tf.int32)
+
             position_ids = inputs[3] if len(inputs) > 3 else position_ids
+            position_ids = tf.cast(position_ids, dtype=tf.int32)
+
             head_mask = inputs[4] if len(inputs) > 4 else head_mask
             assert len(inputs) <= 5, "Too many inputs."
         elif isinstance(inputs, dict):
             input_ids = inputs.get('input_ids')
+            input_ids = tf.cast(input_ids, dtype=tf.int32)
             attention_mask = inputs.get('attention_mask', attention_mask)
             token_type_ids = inputs.get('token_type_ids', token_type_ids)
+            token_type_ids = tf.cast(token_type_ids, dtype=tf.int32)
             position_ids = inputs.get('position_ids', position_ids)
+            position_ids = tf.cast(position_ids, dtype=tf.int32)
+
             head_mask = inputs.get('head_mask', head_mask)
             assert len(inputs) <= 5, "Too many inputs."
         else:
             input_ids = inputs
+            input_ids = tf.cast(input_ids, dtype=tf.int32)
 
-        input_ids = tf.cast(input_ids, dtype=tf.int32)
+
+
 
         if attention_mask is None:
             attention_mask = tf.fill(tf.shape(input_ids), 1)
