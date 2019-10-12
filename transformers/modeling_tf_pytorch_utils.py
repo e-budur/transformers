@@ -63,7 +63,7 @@ def convert_tf_weight_name_to_pt_weight_name(tf_name, start_prefix_to_remove='')
 #####################
 ### PyTorch => TF 2.0
 
-def load_pytorch_checkpoint_in_tf2_model(tf_model, pytorch_checkpoint_path, tf_inputs=None, allow_missing_keys=False):
+def load_pytorch_checkpoint_in_tf2_model(tf_model, pytorch_checkpoint_path, allow_missing_keys=False):
     """ Load pytorch checkpoints in a TF 2.0 model
     """
     try:
@@ -79,18 +79,18 @@ def load_pytorch_checkpoint_in_tf2_model(tf_model, pytorch_checkpoint_path, tf_i
 
     pt_state_dict = torch.load(pt_path, map_location='cpu')
 
-    return load_pytorch_weights_in_tf2_model(tf_model, pt_state_dict, tf_inputs=tf_inputs, allow_missing_keys=allow_missing_keys)
+    return load_pytorch_weights_in_tf2_model(tf_model, pt_state_dict, allow_missing_keys=allow_missing_keys)
 
 
-def load_pytorch_model_in_tf2_model(tf_model, pt_model, tf_inputs=None, allow_missing_keys=False):
+def load_pytorch_model_in_tf2_model(tf_model, pt_model, allow_missing_keys=False):
     """ Load pytorch checkpoints in a TF 2.0 model
     """
     pt_state_dict = pt_model.state_dict()
 
-    return load_pytorch_weights_in_tf2_model(tf_model, pt_state_dict, tf_inputs=tf_inputs, allow_missing_keys=allow_missing_keys)
+    return load_pytorch_weights_in_tf2_model(tf_model, pt_state_dict, allow_missing_keys=allow_missing_keys)
 
 
-def load_pytorch_weights_in_tf2_model(tf_model, pt_state_dict, tf_inputs=None, allow_missing_keys=False):
+def load_pytorch_weights_in_tf2_model(tf_model, pt_state_dict, allow_missing_keys=False):
     """ Load pytorch state_dict in a TF 2.0 model.
     """
     try:
@@ -101,12 +101,6 @@ def load_pytorch_weights_in_tf2_model(tf_model, pt_state_dict, tf_inputs=None, a
         logger.error("Loading a PyTorch model in TensorFlow, requires both PyTorch and TensorFlow to be installed. Please see "
             "https://pytorch.org/ and https://www.tensorflow.org/install/ for installation instructions.")
         raise e
-
-    if tf_inputs is None:
-        tf_inputs = tf_model.dummy_inputs
-
-    if tf_inputs is not None:
-        tfo = tf_model(tf_inputs, training=False)  # Make sure model is built
 
     # Adapt state dict - TODO remove this and update the AWS weights files instead
     # Convert old format to new format if needed from a PyTorch state_dict
@@ -163,9 +157,6 @@ def load_pytorch_weights_in_tf2_model(tf_model, pt_state_dict, tf_inputs=None, a
 
     K.batch_set_value(weight_value_tuples)
 
-    if tf_inputs is not None:
-        tfo = tf_model(tf_inputs, training=False)  # Make sure restore ops are run
-
     logger.info("Weights or buffers not loaded from PyTorch model: {}".format(all_pytorch_weights))
 
     return tf_model
@@ -174,7 +165,7 @@ def load_pytorch_weights_in_tf2_model(tf_model, pt_state_dict, tf_inputs=None, a
 #####################
 ### TF 2.0 => PyTorch
 
-def load_tf2_checkpoint_in_pytorch_model(pt_model, tf_checkpoint_path, tf_inputs=None, allow_missing_keys=False):
+def load_tf2_checkpoint_in_pytorch_model(pt_model, tf_checkpoint_path, allow_missing_keys=False):
     """ Load TF 2.0 HDF5 checkpoint in a PyTorch model
         We use HDF5 to easily do transfer learning
         (see https://github.com/tensorflow/tensorflow/blob/ee16fcac960ae660e0e4496658a366e2f745e1f0/tensorflow/python/keras/engine/network.py#L1352-L1357).
@@ -196,12 +187,6 @@ def load_tf2_checkpoint_in_pytorch_model(pt_model, tf_checkpoint_path, tf_inputs
     tf_model_class_name = "TF" + pt_model.__class__.__name__  # Add "TF" at the beggining
     tf_model_class = getattr(transformers, tf_model_class_name)
     tf_model = tf_model_class(pt_model.config)
-
-    if tf_inputs is None:
-        tf_inputs = tf.constant(DUMMY_INPUTS)
-
-    if tf_inputs is not None:
-        tfo = tf_model(tf_inputs, training=False)  # Make sure model is built
 
     tf_model.load_weights(tf_checkpoint_path, by_name=True)
 
