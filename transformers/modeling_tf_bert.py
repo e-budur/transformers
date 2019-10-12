@@ -488,6 +488,8 @@ class TFBertMainLayer(tf.keras.layers.Layer):
         else:
             input_ids = inputs
 
+        input_ids = tf.cast(input_ids, dtype=tf.int32)
+
         if attention_mask is None:
             attention_mask = tf.fill(tf.shape(input_ids), 1)
         if token_type_ids is None:
