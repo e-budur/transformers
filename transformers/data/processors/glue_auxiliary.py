@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 
 
 class SnliProcessor(MnliProcessor):
-    """Processor for the MultiNLI Mismatched data set (GLUE version)."""
+    """Processor for the SNLI as an auxiliary dataaset (GLUE version)."""
 
     def get_dev_examples(self, data_dir):
         """See base class."""
