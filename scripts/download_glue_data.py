@@ -1,5 +1,8 @@
 '''
 Disclaimer: This script was adopted from https://gist.github.com/W4ngatang/60c2bdb54d156a41194446737ce03e2e
+
+Ex:
+python download_glue_data.py --data_dir glue_data --tasks all
 ------------------------------------------------------------------------------------------------------------
 Script for downloading all GLUE data.
 
