@@ -141,4 +141,6 @@ serialization_dir
 
 # phd-thesis
 output
+outputs
+slurm_outputs
 scripts/slurm
