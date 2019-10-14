@@ -59,7 +59,44 @@ class SnliProcessor(MnliProcessor):
                 InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
         return examples
 
+class XnliProcessor(MnliProcessor):
+    """Processor for the XNLI as an auxiliary dataset (Original version)."""
+
+    def __init__(self, lang='en'):
+        self.lang = lang
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        return self._create_dev_examples(
+            self._read_tsv(os.path.join(data_dir, "xnli.dev.tsv")),
+            "dev")
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        return self._create_examples(
+            self._read_tsv(os.path.join(data_dir, "train.tsv")), "train")
+
+    def _create_dev_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for (i, line) in enumerate(lines):
+            if i == 0:
+                continue
+            lang = line[0]
+            if lang != self.lang:
+                continue
+            guid = "%s-%s" % (set_type, i)
+            text_a = line[6]
+            text_b = line[7]
+            label = line[1]
+            examples.append(
+                InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+        return examples
+
+
 
 
 processors['snli'] = SnliProcessor
 output_modes['snli'] = "classification"
+processors['xnli'] = XnliProcessor
+output_modes['xnli'] = "classification"
