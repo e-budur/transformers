@@ -29,6 +29,8 @@ from transformers.data.processors.glue import MnliProcessor
 
 from .utils import DataProcessor, InputExample, InputFeatures
 from ...file_utils import is_tf_available
+import json
+import codecs
 
 if is_tf_available():
     import tensorflow as tf
@@ -60,6 +62,65 @@ class SnliProcessor(MnliProcessor):
         return examples
 
 
+class MnliNMTProcessor(DataProcessor):
+    """Processor for the MultiNLI-NMT as an auxiliary dataaset (GLUE version)."""
+
+    def __init__(self, train_filename, dev_filename):
+        self.train_filename = train_filename
+        self.dev_filename = dev_filename
+
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        return self._create_examples_from_json(
+            self._read_json(os.path.join(data_dir, self.dev_filename)),
+            "dev")
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        return self._create_examples_from_json(
+            self._read_json(os.path.join(data_dir, self.train_filename)),
+            "train")
+
+    def get_labels(self):
+        """See base class."""
+        return ["contradiction", "entailment", "neutral"]
+
+    def _create_examples_from_json(self, data, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for (i, data_item) in enumerate(data):
+            if i == 0:
+                continue
+            guid = "%s-%s" % (set_type, data_item['pairID'])
+            text_a = data_item['translate-sentence1']
+            text_b = data_item['translate-sentence2']
+            label = data_item['gold_label']
+            examples.append(
+                InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+        return examples
+
+    def _read_json(cls, input_file, quotechar=None):
+        """Reads a tab separated value file."""
+        with codecs.open(input_file, encoding='utf-8') as json_file:
+            data = json.load(json_file)
+            return data
+
+class MnliNMTMatchedProcessor(MnliNMTProcessor):
+    """Processor for the MultiNLI NMT Matched data set."""
+    def __init__(self):
+        super().__init__('multinli_train_translation.json', 'multinli_dev_matched_translation.json')
+
+
+class MnliNMTMismatchedProcessor(MnliNMTProcessor):
+    """Processor for the MultiNLI NMT Mismatched data set."""
+    def __init__(self):
+        super().__init__('multinli_train_translation.json', 'multinli_dev_mismatched_translation.json')
+
 
 processors['snli'] = SnliProcessor
 output_modes['snli'] = "classification"
+processors['mnli-nmt-amzn-tr'] = MnliNMTMatchedProcessor
+output_modes['mnli-nmt-amzn-tr'] = "classification"
+processors['mnli-mm-nmt-amzn-tr'] = MnliNMTMismatchedProcessor
+output_modes['mnli-mm-nmt-amzn-tr'] = "classification"
