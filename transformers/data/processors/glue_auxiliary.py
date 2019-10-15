@@ -92,6 +92,8 @@ class MnliNMTProcessor(DataProcessor):
         for (i, data_item) in enumerate(data):
             if i == 0:
                 continue
+            if data_item['gold_label'] == '-': #skip data_items with missing gold labels
+                continue
             guid = "%s-%s" % (set_type, data_item['pairID'])
             text_a = data_item['translate-sentence1']
             text_b = data_item['translate-sentence2']
