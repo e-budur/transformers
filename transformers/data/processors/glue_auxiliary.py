@@ -121,9 +121,33 @@ class MnliNMTMismatchedProcessor(MnliNMTProcessor):
 
 
 class SnliNMTProcessor(MnliNMTProcessor):
-    """Processor for the MultiNLI NMT Matched data set."""
+    """Processor for the SNLI NMT Matched data set."""
     def __init__(self):
         super().__init__('snli_train_translation.json', 'snli_dev_translation.json')
+
+class XnliNMTProcessor(MnliNMTProcessor):
+    """Processor for the XNLI NMT Matched data set."""
+    def __init__(self, lang='tr'):
+        super().__init__('multinli_train_translation.json', 'xnli_dev_translation.json')
+        self.lang=lang
+
+    def _create_examples_from_json(self, data, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for (i, data_item) in enumerate(data):
+            if i == 0:
+                continue
+            if data_item['gold_label'] == '-': #skip data_items with missing gold labels
+                continue
+            if data_item['lang'] != self.lang:
+                continue
+            guid = "%s-%s" % (set_type, data_item['pairID'])
+            text_a = data_item['translate-sentence1']
+            text_b = data_item['translate-sentence2']
+            label = data_item['gold_label']
+            examples.append(
+                InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+        return examples
 
 processors['snli'] = SnliProcessor
 output_modes['snli'] = "classification"
@@ -133,3 +157,5 @@ processors['mnli-mm-nmt-amzn-tr'] = MnliNMTMismatchedProcessor
 output_modes['mnli-mm-nmt-amzn-tr'] = "classification"
 processors['snli-nmt-amzn-tr'] = SnliNMTProcessor
 output_modes['snli-nmt-amzn-tr'] = "classification"
+processors['xnli-nmt-amzn-tr'] = XnliNMTProcessor
+output_modes['xnli-nmt-amzn-tr'] = "classification"
