@@ -153,6 +153,11 @@ class MnliNMTMismatchedProcessor(MnliNMTProcessor):
         super().__init__('multinli_train_translation.json', 'multinli_dev_mismatched_translation.json')
 
 
+class SnliNMTProcessor(MnliNMTProcessor):
+    """Processor for the MultiNLI NMT Matched data set."""
+    def __init__(self):
+        super().__init__('snli_train_translation.json', 'snli_dev_translation.json')
+
 processors['snli'] = SnliProcessor
 output_modes['snli'] = "classification"
 processors['xnli'] = XnliProcessor
@@ -161,3 +166,5 @@ processors['mnli-nmt-amzn-tr'] = MnliNMTMatchedProcessor
 output_modes['mnli-nmt-amzn-tr'] = "classification"
 processors['mnli-mm-nmt-amzn-tr'] = MnliNMTMismatchedProcessor
 output_modes['mnli-mm-nmt-amzn-tr'] = "classification"
+processors['snli-nmt-amzn-tr'] = SnliNMTProcessor
+output_modes['snli-nmt-amzn-tr'] = "classification"
