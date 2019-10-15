@@ -121,7 +121,7 @@ class MnliNMTMismatchedProcessor(MnliNMTProcessor):
 
 
 class SnliNMTProcessor(MnliNMTProcessor):
-    """Processor for the MultiNLI NMT Matched data set."""
+    """Processor for the SNLI NMT Matched data set."""
     def __init__(self):
         super().__init__('snli_train_translation.json', 'snli_dev_translation.json')
 
