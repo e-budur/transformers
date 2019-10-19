@@ -96,6 +96,8 @@ class MnliNMTProcessor(DataProcessor):
             text_a = data_item['translate-sentence1']
             text_b = data_item['translate-sentence2']
             label = data_item['gold_label']
+            if label == '-': #skip data_items with missing gold labels
+                continue
             examples.append(
                 InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
         return examples
