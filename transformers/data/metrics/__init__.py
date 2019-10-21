@@ -69,15 +69,19 @@ if _has_sklearn:
             return pearson_and_spearman(preds, labels)
         elif task_name == "qqp":
             return acc_and_f1(preds, labels)
-        elif task_name == "mnli":
+        elif task_name == "mnli" or task_name == 'mnli-nmt-amzn-tr':
             return {"acc": simple_accuracy(preds, labels)}
-        elif task_name == "mnli-mm":
+        elif task_name == "mnli-mm" or task_name == 'mnli-mm-nmt-amzn-tr':
             return {"acc": simple_accuracy(preds, labels)}
         elif task_name == "qnli":
             return {"acc": simple_accuracy(preds, labels)}
         elif task_name == "rte":
             return {"acc": simple_accuracy(preds, labels)}
         elif task_name == "wnli":
+            return {"acc": simple_accuracy(preds, labels)}
+        elif task_name == "snli" or task_name == "snli-nmt-amzn-tr":
+            return {"acc": simple_accuracy(preds, labels)}
+        elif task_name == "xnli" or task_name == "xnli-nmt-amzn-tr":
             return {"acc": simple_accuracy(preds, labels)}
         else:
             raise KeyError(task_name)
