@@ -456,6 +456,8 @@ def main():
 		args.n_gpu = torch.cuda.device_count()
 	args.device = device
 
+	logger.warning("torch.cuda.is_available(): %s, current device:%s", str(torch.cuda.is_available()), args.device)
+
 	# Setup logging
 	logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
 						datefmt='%m/%d/%Y %H:%M:%S',
