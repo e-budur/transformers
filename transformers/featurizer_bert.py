@@ -19,7 +19,7 @@ class PreTrainedFeaturizer(object):
 
 class BertFeaturizer(PreTrainedFeaturizer):
 	def __init__(self, **kwargs):
-		super(PreTrainedFeaturizer, self).__init__(**kwargs)
+		super(BertFeaturizer, self).__init__(**kwargs)
 
 	def _get_examples(self, inputs, tokenizer, args):
 		masked_lm_labels = inputs.clone()
