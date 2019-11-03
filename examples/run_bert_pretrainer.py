@@ -42,6 +42,7 @@ from tqdm import tqdm, trange
 from transformers.tokenization_bert_nlu import BertNLUTokenizer
 from transformers.modeling_bert_nlu import BertNLUForPreTraining
 from transformers.configuration_bert_nlu import BertNLUConfig
+from transformers.featurizer_bert_nlu import BertNLUFeaturizer
 
 from transformers.tokenization_bert import BertTokenizer
 from transformers.modeling_bert import BertForPreTraining
@@ -65,14 +66,15 @@ logger = logging.getLogger(__name__)
 
 
 MODEL_CLASSES = {
-	'bert': (BertConfig, BertForPreTraining, BertTokenizer, BertFeaturizer)
+	'bert': (BertConfig, BertForPreTraining, BertTokenizer, BertFeaturizer),
+	'bert-nlu': (BertNLUConfig, BertNLUForPreTraining, BertNLUTokenizer, BertNLUFeaturizer)
 }
 
 
 class TextDataset(Dataset):
-	def __init__(self, tokenizer, input_data_dir='train'):
+	def __init__(self, tokenizer, input_data_dir='train', cache_file_name='cached_features'):
 
-		cached_features_file = os.path.join(input_data_dir, 'cached_features')
+		cached_features_file = os.path.join(input_data_dir, cache_file_name)
 
 		if os.path.exists(cached_features_file):
 			logger.info("Loading features from cached file %s", cached_features_file)
@@ -135,7 +137,7 @@ class TextDataset(Dataset):
 
 
 def load_and_cache_examples(args, tokenizer):
-	dataset = TextDataset(tokenizer, input_data_dir=args.input_data_dir)
+	dataset = TextDataset(tokenizer, input_data_dir=args.input_data_dir, cache_file_name='cached_features_'+args.model_type)
 	return dataset
 
 
@@ -174,79 +176,6 @@ def _rotate_checkpoints(args, checkpoint_prefix, use_mtime=False):
 	for checkpoint in checkpoints_to_be_deleted:
 		logger.info("Deleting older checkpoint [{}] due to args.save_total_limit".format(checkpoint))
 		shutil.rmtree(checkpoint)
-
-
-def get_examples(inputs, tokenizer, args):
-	masked_lm_labels = inputs.clone()
-
-	# We sample a few tokens in each sequence for masked-LM training (with probability args.mlm_probability defaults to 0.15 in Bert/RoBERTa)
-	probability_matrix = torch.full(masked_lm_labels.shape, args.mlm_probability)
-	special_tokens_mask = [tokenizer.get_special_tokens_mask(val, already_has_special_tokens=True) for val in
-						   masked_lm_labels.tolist()]
-	probability_matrix.masked_fill_(torch.tensor(special_tokens_mask, dtype=torch.bool), value=0.0)
-	masked_indices = torch.bernoulli(probability_matrix).bool()
-	masked_lm_labels[~masked_indices] = -1  # We only compute loss on masked tokens
-
-	# 80% of the time, we replace masked input tokens with tokenizer.mask_token ([MASK])
-	indices_replaced = torch.bernoulli(torch.full(masked_lm_labels.shape, 0.8)).bool() & masked_indices
-	inputs[indices_replaced] = tokenizer.convert_tokens_to_ids(tokenizer.mask_token)
-
-	# 10% of the time, we replace masked input tokens with random word
-	indices_random = torch.bernoulli(
-		torch.full(masked_lm_labels.shape, 0.5)).bool() & masked_indices & ~indices_replaced
-	random_words = torch.randint(len(tokenizer), masked_lm_labels.shape, dtype=torch.long)
-	inputs[indices_random] = random_words[indices_random]
-
-	indices = [list(set(features)) for features in inputs.tolist()]
-
-	bag_of_tokens_label = np.zeros((inputs.shape[0], tokenizer.vocab_size))
-	for (row, row_indices) in zip(bag_of_tokens_label, indices):
-		row[row_indices] = 1
-
-	bag_of_tokens_label = torch.FloatTensor(bag_of_tokens_label)
-
-	return inputs, masked_lm_labels, bag_of_tokens_label
-
-def get_positive_examples(inputs, tokenizer, args, config):
-	pos_inputs, pos_masked_lm_labels, pos_bag_of_tokens_label = get_examples(inputs, tokenizer, args)
-	pos_next_sentence_label = torch.LongTensor(np.tile([1], (inputs.shape[0], 1)))
-	return pos_inputs, pos_next_sentence_label, pos_masked_lm_labels, pos_bag_of_tokens_label
-
-def get_negative_examples(inputs, tokenizer, args, config):
-	neg_inputs, neg_masked_lm_labels, neg_bag_of_tokens_label = get_examples(inputs, tokenizer, args)
-
-
-	sent_len = int((config.max_position_embeddings-4)/2)
-	sent1_start_pos = 2
-	sent1_end_pos = int(sent1_start_pos+sent_len)
-
-	sent2_start_pos = int(sent1_end_pos+1)
-	sent2_end_pos = int(sent2_start_pos+sent_len)
-
-	sent2_parts = neg_inputs[:, sent2_start_pos:sent2_end_pos+1]
-
-	row_indices = np.arange(sent2_parts.shape[0]).tolist()
-	row_indices.pop(0)
-	row_indices.append(0)
-	sent2_parts = sent2_parts[row_indices,:]
-	neg_inputs[:, sent2_start_pos:sent2_end_pos + 1] = sent2_parts
-
-	neg_next_sentence_label = torch.LongTensor(np.tile([0], (inputs.shape[0], 1)))
-	return neg_inputs, neg_next_sentence_label, neg_masked_lm_labels, neg_bag_of_tokens_label
-
-def featurize_bert_nlu_input(inputs, tokenizer, args, config):
-	pos_inputs, pos_next_sentence_label, pos_masked_lm_labels, pos_bag_of_tokens_label = get_positive_examples(inputs, tokenizer, args, config)
-	neg_inputs, neg_next_sentence_label, neg_masked_lm_labels, neg_bag_of_tokens_label = get_negative_examples(inputs, tokenizer, args, config)
-
-	inputs = torch.cat([pos_inputs,  neg_inputs], dim=0)
-	next_sentence_label = torch.cat([pos_next_sentence_label, neg_next_sentence_label], dim=0)
-	masked_lm_labels = torch.cat([pos_masked_lm_labels, neg_masked_lm_labels], dim=0)
-	bag_of_tokens_label = torch.cat([pos_bag_of_tokens_label, neg_bag_of_tokens_label], dim=0)
-
-	outputs = (next_sentence_label, masked_lm_labels, bag_of_tokens_label)
-	return inputs, outputs
-
-
 
 def train(args, train_dataset, model, tokenizer, featurizer, config):
 	""" Train the model """
