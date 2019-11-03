@@ -80,27 +80,27 @@ class TextDataset(Dataset):
 
 			for file in tqdm(files, desc="read files"):
 				with open(file, 'r', encoding='utf-8') as fin:
-					prev_line = None
+					prev_sent = None
 					for cur_line in fin:
 						if len(cur_line.strip())==0:
 							continue
+						cur_sentences = cur_line.split('.')
+						for cur_sent in cur_sentences:
+							cur_sent = tokenizer.convert_tokens_to_ids(tokenizer.tokenize(cur_sent.strip()))
+							if len(cur_sent) == 0:
+								continue
+							if len(cur_sent)>block_size:
+								cur_sent = cur_sent[:block_size]
+							elif len(cur_sent)<block_size:
+								N = block_size - len(cur_sent)
+								cur_sent = np.pad(cur_sent, (0, N), 'constant').tolist()
 
+							if prev_sent is None and len(cur_sent)>0:
+								prev_sent = cur_sent
+								continue
 
-
-						cur_line = tokenizer.convert_tokens_to_ids(tokenizer.tokenize(cur_line.strip()))
-
-						if len(cur_line)>block_size:
-							cur_line = cur_line[:block_size]
-						elif len(cur_line)<block_size:
-							N = block_size - len(cur_line)
-							cur_line = np.pad(cur_line, (0, N), 'constant').tolist()
-
-						if prev_line is None and len(cur_line)>0:
-							prev_line = cur_line
-							continue
-
-						self.examples.append(tokenizer.build_inputs_with_special_tokens(prev_line, cur_line))
-						prev_line = cur_line
+							self.examples.append(tokenizer.build_inputs_with_special_tokens(prev_sent, cur_sent))
+							prev_sent = cur_sent
 
 			logger.info("Saving features into cached file %s", cached_features_file)
 
