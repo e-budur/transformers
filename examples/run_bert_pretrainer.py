@@ -43,6 +43,11 @@ from transformers.tokenization_bert_nlu import BertNLUTokenizer
 from transformers.modeling_bert_nlu import BertNLUForPreTraining
 from transformers.configuration_bert_nlu import BertNLUConfig
 
+from transformers.tokenization_bert import BertTokenizer
+from transformers.modeling_bert import BertForPreTraining
+from transformers.configuration_bert import BertConfig
+from transformers.featurizer_bert import BertFeaturizer
+
 from torch.utils.data import DataLoader, Dataset
 
 from transformers import (WEIGHTS_NAME, BertConfig)
@@ -60,12 +65,12 @@ logger = logging.getLogger(__name__)
 
 
 MODEL_CLASSES = {
-    'bert-nlu': (BertNLUConfig, BertNLUForPreTraining, BertNLUTokenizer)
+	'bert': (BertConfig, BertForPreTraining, BertTokenizer, BertFeaturizer)
 }
 
 
 class TextDataset(Dataset):
-	def __init__(self, tokenizer, input_data_dir='train', block_size=512):
+	def __init__(self, tokenizer, input_data_dir='train'):
 
 		cached_features_file = os.path.join(input_data_dir, 'cached_features')
 
@@ -87,25 +92,40 @@ class TextDataset(Dataset):
 						cur_sentences = cur_line.split('.')
 						for cur_sent in cur_sentences:
 							cur_sent = tokenizer.convert_tokens_to_ids(tokenizer.tokenize(cur_sent.strip()))
-							if len(cur_sent) == 0:
-								continue
-							if len(cur_sent)>block_size:
-								cur_sent = cur_sent[:block_size]
-							elif len(cur_sent)<block_size:
-								N = block_size - len(cur_sent)
-								cur_sent = np.pad(cur_sent, (0, N), 'constant').tolist()
 
-							if prev_sent is None and len(cur_sent)>0:
+							if len(cur_sent)==0:
+								continue
+
+							if prev_sent is None:
 								prev_sent = cur_sent
 								continue
 
-							self.examples.append(tokenizer.build_inputs_with_special_tokens(prev_sent, cur_sent))
+							prev_sent_padded, cur_sent_padded = self._get_padded_pairs(prev_sent, cur_sent, tokenizer.max_len_sentences_pair)
+							example = tokenizer.build_inputs_with_special_tokens(prev_sent_padded, cur_sent_padded)
+							self.examples.append(example)
 							prev_sent = cur_sent
 
 			logger.info("Saving features into cached file %s", cached_features_file)
 
 			with open(cached_features_file, 'wb') as handle:
 				pickle.dump(self.examples, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+	def _get_padded_sent(self, sentence, single_sentence_max_len):
+		if len(sentence) > single_sentence_max_len:
+			sentence = sentence[:single_sentence_max_len]
+		elif len(sentence) < single_sentence_max_len:
+			N = single_sentence_max_len - len(sentence)
+			sentence = np.pad(sentence, (0, N), 'constant').tolist()
+		return sentence
+
+	def _get_padded_pairs(self, prev_sent, cur_sent, max_len_sentences_pair):
+		prev_sent_len = int(max_len_sentences_pair/2)
+		cur_sent_len = max_len_sentences_pair - prev_sent_len
+
+		prev_sent = self._get_padded_sent(prev_sent, prev_sent_len)
+		cur_sent = self._get_padded_sent(cur_sent, cur_sent_len)
+
+		return prev_sent, cur_sent
 
 	def __len__(self):
 		return len(self.examples)
@@ -115,7 +135,7 @@ class TextDataset(Dataset):
 
 
 def load_and_cache_examples(args, tokenizer):
-	dataset = TextDataset(tokenizer, input_data_dir=args.input_data_dir, block_size=args.block_size)
+	dataset = TextDataset(tokenizer, input_data_dir=args.input_data_dir)
 	return dataset
 
 
@@ -214,7 +234,7 @@ def get_negative_examples(inputs, tokenizer, args, config):
 	neg_next_sentence_label = torch.LongTensor(np.tile([0], (inputs.shape[0], 1)))
 	return neg_inputs, neg_next_sentence_label, neg_masked_lm_labels, neg_bag_of_tokens_label
 
-def featurize_input(inputs, tokenizer, args, config):
+def featurize_bert_nlu_input(inputs, tokenizer, args, config):
 	pos_inputs, pos_next_sentence_label, pos_masked_lm_labels, pos_bag_of_tokens_label = get_positive_examples(inputs, tokenizer, args, config)
 	neg_inputs, neg_next_sentence_label, neg_masked_lm_labels, neg_bag_of_tokens_label = get_negative_examples(inputs, tokenizer, args, config)
 
@@ -223,11 +243,12 @@ def featurize_input(inputs, tokenizer, args, config):
 	masked_lm_labels = torch.cat([pos_masked_lm_labels, neg_masked_lm_labels], dim=0)
 	bag_of_tokens_label = torch.cat([pos_bag_of_tokens_label, neg_bag_of_tokens_label], dim=0)
 
-	return inputs, next_sentence_label, masked_lm_labels, bag_of_tokens_label
+	outputs = (next_sentence_label, masked_lm_labels, bag_of_tokens_label)
+	return inputs, outputs
 
 
 
-def train(args, train_dataset, model, tokenizer, config):
+def train(args, train_dataset, model, tokenizer, featurizer, config):
 	""" Train the model """
 	if args.local_rank in [-1, 0]:
 		tb_writer = SummaryWriter()
@@ -287,11 +308,13 @@ def train(args, train_dataset, model, tokenizer, config):
 	for _ in train_iterator:
 		epoch_iterator = tqdm(train_dataloader, desc="Iteration", disable=args.local_rank not in [-1, 0])
 		for step, batch in enumerate(epoch_iterator):
-			inputs, next_sentence_label, masked_lm_labels, bag_of_tokens_label = featurize_input(batch, tokenizer, args, config)
+			inputs, outputs = featurizer.featurize(batch, tokenizer, args, config)
 			inputs = inputs.to(args.device)
-			masked_lm_labels = masked_lm_labels.to(args.device)
+			for output in outputs:
+				if output is not None:
+					output=output.to(args.device)
 			model.train()
-			outputs = model(inputs, masked_lm_labels=masked_lm_labels, next_sentence_label=next_sentence_label, bag_of_tokens_label=bag_of_tokens_label)
+			outputs = model(inputs, *outputs)
 			loss = outputs[0]  # model outputs are always tuple in transformers (see doc)
 
 			if args.n_gpu > 1:
@@ -472,10 +495,11 @@ def main():
 	if args.local_rank not in [-1, 0]:
 		torch.distributed.barrier()  # Barrier to make sure only the first process in distributed training download model & vocab
 
-	config_class, model_class, tokenizer_class = MODEL_CLASSES[args.model_type]
+	config_class, model_class, tokenizer_class, featurizer_class = MODEL_CLASSES[args.model_type]
 	config = config_class.from_pretrained(args.config_name if args.config_name else args.model_name_or_path)
 	tokenizer = tokenizer_class.from_pretrained(args.tokenizer_name if args.tokenizer_name else args.model_name_or_path,
 												do_lower_case=args.do_lower_case)
+	featurizer = featurizer_class()
 	if args.block_size <= 0:
 		args.block_size = tokenizer.max_len_single_sentence  # Our input block size will be the max possible for the model
 	args.block_size = min(args.block_size, tokenizer.max_len_single_sentence)
@@ -497,7 +521,7 @@ def main():
 	if args.local_rank == 0:
 		torch.distributed.barrier()
 
-	global_step, tr_loss = train(args, train_dataset, model, tokenizer, config)
+	global_step, tr_loss = train(args, train_dataset, model, tokenizer, featurizer, config)
 	logger.info(" global_step = %s, average loss = %s", global_step, tr_loss)
 
 
