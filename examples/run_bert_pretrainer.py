@@ -239,9 +239,7 @@ def train(args, train_dataset, model, tokenizer, featurizer, config):
 		for step, batch in enumerate(epoch_iterator):
 			inputs, outputs = featurizer.featurize(batch, tokenizer, args, config)
 			inputs = inputs.to(args.device)
-			for output in outputs:
-				if output is not None:
-					output=output.to(args.device)
+			outputs = [output.to(args.device) if output is not None else None for output in outputs]
 			model.train()
 			outputs = model(inputs, *outputs)
 			loss = outputs[0]  # model outputs are always tuple in transformers (see doc)
