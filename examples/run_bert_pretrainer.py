@@ -141,7 +141,8 @@ class TextDataset(Dataset):
 		return len(self.cached_file_paths)
 
 	def __getitem__(self, index):
-		logger.info("Reading file:", self.cached_file_paths[index])
+
+		logger.info("\nReading file:\n", self.cached_file_paths[index])
 		with open(self.cached_file_paths[index], 'rb') as handle:
 			self.examples = pickle.load(handle)
 
