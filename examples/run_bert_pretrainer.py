@@ -72,10 +72,10 @@ MODEL_CLASSES = {
 
 
 class TextDataset(Dataset):
-	def __init__(self, tokenizer, input_data_dir='train', cache_file_name='cached_features'):
+	def __init__(self, tokenizer, input_data_dir='train', cache_folder_suffix='cached_features'):
 
 
-		cached_features_dir = input_data_dir + '-CACHED'
+		cached_features_dir = input_data_dir + cache_folder_suffix
 
 		if not os.path.exists(cached_features_dir):
 			os.makedirs(cached_features_dir)
@@ -149,7 +149,7 @@ class TextDataset(Dataset):
 
 
 def load_and_cache_examples(args, tokenizer):
-	dataset = TextDataset(tokenizer, input_data_dir=args.input_data_dir, cache_file_name='cached_features_'+args.model_type)
+	dataset = TextDataset(tokenizer, input_data_dir=args.input_data_dir, cache_folder_suffix='-CACHED-'+args.model_type)
 	return dataset
 
 
