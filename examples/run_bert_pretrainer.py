@@ -144,9 +144,9 @@ class TextDataset(Dataset):
 
 		logger.info("\nReading file:\n", self.cached_file_paths[index])
 		with open(self.cached_file_paths[index], 'rb') as handle:
-			self.examples = pickle.load(handle)
+			examples = pickle.load(handle)
 
-		return torch.tensor(self.examples)
+		return torch.tensor(examples)
 
 
 def load_and_cache_examples(args, tokenizer):
@@ -250,9 +250,10 @@ def train(args, train_dataset, model, tokenizer, featurizer, config):
 	for _ in train_iterator:
 		file_iterator = tqdm(train_data_fileloader, desc="Iteration", disable=args.local_rank not in [-1, 0])
 		for step, file_data in enumerate(file_iterator):
+
 			file_data = file_data.squeeze()
 
-			example_sampler = RandomSampler(file_data) if args.local_rank == -1 else DistributedSampler(train_dataset)
+			example_sampler = RandomSampler(file_data) if args.local_rank == -1 else DistributedSampler(file_data)
 			example_loader = DataLoader(file_data, sampler=example_sampler,
 											   	   batch_size=args.train_batch_size)
 			example_iterator = tqdm(example_loader, desc="Examples in file", disable=args.local_rank not in [-1, 0])
