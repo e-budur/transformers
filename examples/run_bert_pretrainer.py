@@ -74,43 +74,51 @@ MODEL_CLASSES = {
 class TextDataset(Dataset):
 	def __init__(self, tokenizer, input_data_dir='train', cache_file_name='cached_features'):
 
-		cached_features_file = os.path.join(input_data_dir, cache_file_name)
 
-		if os.path.exists(cached_features_file):
-			logger.info("Loading features from cached file %s", cached_features_file)
-			with open(cached_features_file, 'rb') as handle:
-				self.examples = pickle.load(handle)
-		else:
-			logger.info("Creating features from data directory at %s", input_data_dir)
-			self.examples = []
-			files = glob.glob(input_data_dir + "/*txt")
+		cached_features_dir = input_data_dir + '-CACHED'
 
-			for file in tqdm(files, desc="read files"):
-				with open(file, 'r', encoding='utf-8') as fin:
-					prev_sent = None
-					for cur_line in fin:
-						if len(cur_line.strip())==0:
+		if not os.path.exists(cached_features_dir):
+			os.makedirs(cached_features_dir)
+
+		logger.info("Creating features from data directory at %s", input_data_dir)
+
+		files = glob.glob(input_data_dir + "/*txt")
+		self.cached_file_paths = []
+		for input_file in tqdm(files, desc="read files"):
+			examples = []
+			input_file_rel_path = os.path.relpath(input_file, input_data_dir)
+			cached_file_path = os.path.join(cached_features_dir, input_file_rel_path + u'.dat')
+			self.cached_file_paths.append(cached_file_path)
+			if os.path.exists(cached_file_path):
+				logger.info("File already processed and cached %s", input_file)
+				continue
+			logger.info("Processing file %s", input_file)
+
+			with open(input_file, 'r', encoding='utf-8') as fin:
+				prev_sent = None
+				for cur_line in fin:
+					if len(cur_line.strip())==0:
+						continue
+					cur_sentences = cur_line.split('.')
+					for cur_sent in cur_sentences:
+						cur_sent = tokenizer.convert_tokens_to_ids(tokenizer.tokenize(cur_sent.strip()))
+
+						if len(cur_sent)==0:
 							continue
-						cur_sentences = cur_line.split('.')
-						for cur_sent in cur_sentences:
-							cur_sent = tokenizer.convert_tokens_to_ids(tokenizer.tokenize(cur_sent.strip()))
 
-							if len(cur_sent)==0:
-								continue
-
-							if prev_sent is None:
-								prev_sent = cur_sent
-								continue
-
-							prev_sent_padded, cur_sent_padded = self._get_padded_pairs(prev_sent, cur_sent, tokenizer.max_len_sentences_pair)
-							example = tokenizer.build_inputs_with_special_tokens(prev_sent_padded, cur_sent_padded)
-							self.examples.append(example)
+						if prev_sent is None:
 							prev_sent = cur_sent
+							continue
 
-			logger.info("Saving features into cached file %s", cached_features_file)
+						prev_sent_padded, cur_sent_padded = self._get_padded_pairs(prev_sent, cur_sent, tokenizer.max_len_sentences_pair)
+						example = tokenizer.build_inputs_with_special_tokens(prev_sent_padded, cur_sent_padded)
+						examples.append(example)
+						prev_sent = cur_sent
 
-			with open(cached_features_file, 'wb') as handle:
-				pickle.dump(self.examples, handle, protocol=pickle.HIGHEST_PROTOCOL)
+			logger.info("Saving features into cached file %s", cached_file_path)
+
+			with open(cached_file_path, 'wb') as handle:
+				pickle.dump(examples, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 	def _get_padded_sent(self, sentence, single_sentence_max_len):
 		if len(sentence) > single_sentence_max_len:
@@ -130,10 +138,14 @@ class TextDataset(Dataset):
 		return prev_sent, cur_sent
 
 	def __len__(self):
-		return len(self.examples)
+		return len(self.cached_file_paths)
 
-	def __getitem__(self, item):
-		return torch.tensor(self.examples[item])
+	def __getitem__(self, index):
+		logger.info("Reading file:", self.cached_file_paths[index])
+		with open(self.cached_file_paths[index], 'rb') as handle:
+			self.examples = pickle.load(handle)
+
+		return torch.tensor(self.examples)
 
 
 def load_and_cache_examples(args, tokenizer):
@@ -184,13 +196,13 @@ def train(args, train_dataset, model, tokenizer, featurizer, config):
 
 	args.train_batch_size = args.per_gpu_train_batch_size * max(1, args.n_gpu)
 	train_sampler = RandomSampler(train_dataset) if args.local_rank == -1 else DistributedSampler(train_dataset)
-	train_dataloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=args.train_batch_size)
+	train_data_fileloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=1) # load 1 file at a time
 
 	if args.max_steps > 0:
 		t_total = args.max_steps
-		args.num_train_epochs = args.max_steps // (len(train_dataloader) // args.gradient_accumulation_steps) + 1
+		args.num_train_epochs = args.max_steps // (len(train_data_fileloader) // args.gradient_accumulation_steps) + 1
 	else:
-		t_total = len(train_dataloader) // args.gradient_accumulation_steps * args.num_train_epochs
+		t_total = len(train_data_fileloader) // args.gradient_accumulation_steps * args.num_train_epochs
 
 	# Prepare optimizer and schedule (linear warmup and decay)
 	no_decay = ['bias', 'LayerNorm.weight']
@@ -235,60 +247,68 @@ def train(args, train_dataset, model, tokenizer, featurizer, config):
 	train_iterator = trange(int(args.num_train_epochs), desc="Epoch", disable=args.local_rank not in [-1, 0])
 	set_seed(args)  # Added here for reproducibility (even between python 2 and 3)
 	for _ in train_iterator:
-		epoch_iterator = tqdm(train_dataloader, desc="Iteration", disable=args.local_rank not in [-1, 0])
-		for step, batch in enumerate(epoch_iterator):
-			inputs, outputs = featurizer.featurize(batch, tokenizer, args, config)
-			inputs = inputs.to(args.device)
-			outputs = [output.to(args.device) if output is not None else None for output in outputs]
-			model.train()
-			outputs = model(inputs, *outputs)
-			loss = outputs[0]  # model outputs are always tuple in transformers (see doc)
+		file_iterator = tqdm(train_data_fileloader, desc="Iteration", disable=args.local_rank not in [-1, 0])
+		for step, file_data in enumerate(file_iterator):
+			file_data = file_data.squeeze()
 
-			if args.n_gpu > 1:
-				loss = loss.mean()  # mean() to average on multi-gpu parallel training
-			if args.gradient_accumulation_steps > 1:
-				loss = loss / args.gradient_accumulation_steps
+			example_sampler = RandomSampler(file_data) if args.local_rank == -1 else DistributedSampler(train_dataset)
+			example_loader = DataLoader(file_data, sampler=example_sampler,
+											   	   batch_size=args.train_batch_size)
+			example_iterator = tqdm(example_loader, desc="Examples in file", disable=args.local_rank not in [-1, 0])
+			for step, batch in enumerate(example_iterator):
+				inputs, outputs = featurizer.featurize(batch, tokenizer, args, config)
+				inputs = inputs.to(args.device)
+				outputs = [output.to(args.device) if output is not None else None for output in outputs]
+				model.train()
+				outputs = model(inputs, *outputs)
+				loss = outputs[0]  # model outputs are always tuple in transformers (see doc)
 
-			if args.fp16:
-				with amp.scale_loss(loss, optimizer) as scaled_loss:
-					scaled_loss.backward()
-			else:
-				loss.backward()
+				if args.n_gpu > 1:
+					loss = loss.mean()  # mean() to average on multi-gpu parallel training
+				if args.gradient_accumulation_steps > 1:
+					loss = loss / args.gradient_accumulation_steps
 
-			tr_loss += loss.item()
-			if (step + 1) % args.gradient_accumulation_steps == 0:
 				if args.fp16:
-					torch.nn.utils.clip_grad_norm_(amp.master_params(optimizer), args.max_grad_norm)
+					with amp.scale_loss(loss, optimizer) as scaled_loss:
+						scaled_loss.backward()
 				else:
-					torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
-				optimizer.step()
-				scheduler.step()  # Update learning rate schedule
-				model.zero_grad()
-				global_step += 1
+					loss.backward()
 
-				if args.local_rank in [-1, 0] and args.logging_steps > 0 and global_step % args.logging_steps == 0:
-					# Log metrics
-					tb_writer.add_scalar('lr', scheduler.get_lr()[0], global_step)
-					tb_writer.add_scalar('loss', (tr_loss - logging_loss) / args.logging_steps, global_step)
-					logging_loss = tr_loss
+				tr_loss += loss.item()
+				if (step + 1) % args.gradient_accumulation_steps == 0:
+					if args.fp16:
+						torch.nn.utils.clip_grad_norm_(amp.master_params(optimizer), args.max_grad_norm)
+					else:
+						torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
+					optimizer.step()
+					scheduler.step()  # Update learning rate schedule
+					model.zero_grad()
+					global_step += 1
 
-				if args.local_rank in [-1, 0] and args.save_steps > 0 and global_step % args.save_steps == 0:
-					checkpoint_prefix = 'checkpoint'
-					# Save model checkpoint
-					output_dir = os.path.join(args.output_dir, '{}-{}'.format(checkpoint_prefix, global_step))
-					if not os.path.exists(output_dir):
-						os.makedirs(output_dir)
-					model_to_save = model.module if hasattr(model,
-															'module') else model  # Take care of distributed/parallel training
-					model_to_save.save_pretrained(output_dir)
-					torch.save(args, os.path.join(output_dir, 'training_args.bin'))
-					logger.info("Saving model checkpoint to %s", output_dir)
+					if args.local_rank in [-1, 0] and args.logging_steps > 0 and global_step % args.logging_steps == 0:
+						# Log metrics
+						tb_writer.add_scalar('lr', scheduler.get_lr()[0], global_step)
+						tb_writer.add_scalar('loss', (tr_loss - logging_loss) / args.logging_steps, global_step)
+						logging_loss = tr_loss
 
-					_rotate_checkpoints(args, checkpoint_prefix)
+					if args.local_rank in [-1, 0] and args.save_steps > 0 and global_step % args.save_steps == 0:
+						checkpoint_prefix = 'checkpoint'
+						# Save model checkpoint
+						output_dir = os.path.join(args.output_dir, '{}-{}'.format(checkpoint_prefix, global_step))
+						if not os.path.exists(output_dir):
+							os.makedirs(output_dir)
+						model_to_save = model.module if hasattr(model,
+																'module') else model  # Take care of distributed/parallel training
+						model_to_save.save_pretrained(output_dir)
+						torch.save(args, os.path.join(output_dir, 'training_args.bin'))
+						logger.info("Saving model checkpoint to %s", output_dir)
 
-			if args.max_steps > 0 and global_step > args.max_steps:
-				epoch_iterator.close()
-				break
+						_rotate_checkpoints(args, checkpoint_prefix)
+
+				if args.max_steps > 0 and global_step > args.max_steps:
+					file_iterator.close()
+					example_iterator.close()
+					break
 		if args.max_steps > 0 and global_step > args.max_steps:
 			train_iterator.close()
 			break
