@@ -256,8 +256,10 @@ def train(args, train_dataset, model, tokenizer, featurizer, config):
 			example_sampler = RandomSampler(file_data) if args.local_rank == -1 else DistributedSampler(file_data)
 			example_loader = DataLoader(file_data, sampler=example_sampler,
 											   	   batch_size=args.train_batch_size)
-			example_iterator = tqdm(example_loader, desc="Examples in file", disable=args.local_rank not in [-1, 0])
-			for step, batch in enumerate(example_iterator):
+			ten_percent_progress_steps = int(len(file_data)/10)
+			for step, batch in enumerate(example_loader):
+				if file_data % ten_percent_progress_steps == 0:
+					logger.info(" Step = %d, \% %d", step, ten_percent_progress_steps)
 				inputs, outputs = featurizer.featurize(batch, tokenizer, args, config)
 				inputs = inputs.to(args.device)
 				outputs = [output.to(args.device) if output is not None else None for output in outputs]
@@ -309,7 +311,6 @@ def train(args, train_dataset, model, tokenizer, featurizer, config):
 
 				if args.max_steps > 0 and global_step > args.max_steps:
 					file_iterator.close()
-					example_iterator.close()
 					break
 		if args.max_steps > 0 and global_step > args.max_steps:
 			train_iterator.close()
