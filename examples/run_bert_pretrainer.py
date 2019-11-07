@@ -258,7 +258,7 @@ def train(args, train_dataset, model, tokenizer, featurizer, config):
 											   	   batch_size=args.train_batch_size)
 			ten_percent_progress_steps = int(len(file_data)/10)
 			for step, batch in enumerate(example_loader):
-				if file_data % ten_percent_progress_steps == 0:
+				if len(file_data) % ten_percent_progress_steps == 0:
 					logger.info(" Step = %d, \% %d", step, ten_percent_progress_steps)
 				inputs, outputs = featurizer.featurize(batch, tokenizer, args, config)
 				inputs = inputs.to(args.device)
