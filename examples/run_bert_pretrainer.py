@@ -105,7 +105,7 @@ class TextDataset(Dataset):
 
 						if len(cur_sent)==0:
 							continue
-
+						cur_sent = cur_sent[:tokenizer.max_len_sentences_pair]
 						if prev_sent is None:
 							prev_sent = cur_sent
 							continue
