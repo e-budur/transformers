@@ -84,7 +84,8 @@ def get_masks(slen, lengths, causal, padding_mask=None, dtype=tf.float32):
         attn_mask = mask
 
     # sanity check
-    assert shape_list(mask) == [bs, slen]
+    # assert shape_list(mask) == [bs, slen]
+    tf.debugging.assert_equal(shape_list(mask), [bs, slen])
     assert causal is False or shape_list(attn_mask) == [bs, slen, slen]
 
     mask = tf.cast(mask, dtype=dtype)
@@ -318,7 +319,8 @@ class TFXLMMainLayer(tf.keras.layers.Layer):
 
         # check inputs
         bs, slen = shape_list(input_ids)
-        assert shape_list(lengths)[0] == bs
+        # assert shape_list(lengths)[0] == bs
+        tf.debugging.assert_equal(shape_list(lengths)[0], bs)
         # assert lengths.max().item() <= slen
         # input_ids = input_ids.transpose(0, 1)  # batch size as dimension 0
         # assert (src_enc is None) == (src_len is None)
@@ -335,12 +337,14 @@ class TFXLMMainLayer(tf.keras.layers.Layer):
         if position_ids is None:
             position_ids = tf.expand_dims(tf.range(slen), axis=0)
         else:
-            assert shape_list(position_ids) == [bs, slen]  # (slen, bs)
+            # assert shape_list(position_ids) == [bs, slen]  # (slen, bs)
+            tf.debugging.assert_equal(shape_list(position_ids), [bs, slen])
             # position_ids = position_ids.transpose(0, 1)
 
         # langs
         if langs is not None:
-            assert shape_list(langs) == [bs, slen]  # (slen, bs)
+            # assert shape_list(langs) == [bs, slen]  # (slen, bs)
+            tf.debugging.assert_equal(shape_list(langs), [bs, slen])
             # langs = langs.transpose(0, 1)
 
         # Prepare head mask if needed
@@ -526,6 +530,10 @@ XLM_INPUTS_DOCSTRING = r"""
             Mask to nullify selected heads of the self-attention modules.
             Mask values selected in ``[0, 1]``:
             ``1`` indicates the head is **not masked**, ``0`` indicates the head is **masked**.
+        **inputs_embeds**: (`optional`) ``Numpy array`` or ``tf.Tensor`` of shape ``(batch_size, sequence_length, embedding_dim)``:
+            Optionally, instead of passing ``input_ids`` you can choose to directly pass an embedded representation.
+            This is useful if you want more control over how to convert `input_ids` indices into associated vectors
+            than the model's internal embedding lookup matrix.
 """
 
 @add_start_docstrings("The bare XLM Model transformer outputing raw hidden-states without any specific head on top.",
