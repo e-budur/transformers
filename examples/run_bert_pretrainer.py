@@ -115,8 +115,6 @@ class TextDataset(Dataset):
 						example = tokenizer.build_inputs_with_special_tokens(prev_sent_padded, cur_sent_padded)
 						examples.append(example)
 						prev_sent = cur_sent
-					if len(examples) > 10:
-						break
 
 
 			logger.info("Saving features into cached file %s", cached_file_path)
