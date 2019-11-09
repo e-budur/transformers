@@ -54,6 +54,7 @@ from torch.utils.data import DataLoader, Dataset
 from transformers import (WEIGHTS_NAME, BertConfig)
 
 from transformers import AdamW, WarmupLinearSchedule
+from compress_pickle import dump, load
 
 from transformers import glue_compute_metrics as compute_metrics
 from transformers import glue_output_modes as output_modes
@@ -87,7 +88,7 @@ class TextDataset(Dataset):
 		for input_file in tqdm(files, desc="read files"):
 			examples = []
 			input_file_rel_path = os.path.relpath(input_file, input_data_dir)
-			cached_file_path = os.path.join(cached_features_dir, input_file_rel_path + u'.dat')
+			cached_file_path = os.path.join(cached_features_dir, input_file_rel_path + u'.pkl.gz')
 			self.cached_file_paths.append(cached_file_path)
 			if os.path.exists(cached_file_path):
 				logger.info("File already processed and cached %s", input_file)
@@ -114,11 +115,13 @@ class TextDataset(Dataset):
 						example = tokenizer.build_inputs_with_special_tokens(prev_sent_padded, cur_sent_padded)
 						examples.append(example)
 						prev_sent = cur_sent
+					if len(examples) > 10:
+						break
+
 
 			logger.info("Saving features into cached file %s", cached_file_path)
 
-			with open(cached_file_path, 'wb') as handle:
-				pickle.dump(examples, handle, protocol=pickle.HIGHEST_PROTOCOL)
+			dump(examples, cached_file_path)# pickling with a gzip compression
 
 	def _get_padded_sent(self, sentence, single_sentence_max_len):
 		if len(sentence) > single_sentence_max_len:
@@ -143,8 +146,7 @@ class TextDataset(Dataset):
 	def __getitem__(self, index):
 
 		logger.info("\nReading file:\n", self.cached_file_paths[index])
-		with open(self.cached_file_paths[index], 'rb') as handle:
-			examples = pickle.load(handle)
+		examples = load(self.cached_file_paths[index])
 
 		return torch.tensor(examples)
 
