@@ -196,7 +196,7 @@ def train(args, train_dataset, model, tokenizer, featurizer, config):
 		tb_writer = SummaryWriter()
 
 	args.train_batch_size = args.per_gpu_train_batch_size * max(1, args.n_gpu)
-	train_sampler = RandomSampler(train_dataset) if args.local_rank == -1 else DistributedSampler(train_dataset)
+	train_sampler = RandomSampler(train_dataset, num_samples=len(train_dataset)) if args.local_rank == -1 else DistributedSampler(train_dataset)
 	train_data_fileloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=1) # load 1 file at a time
 
 	if args.max_steps > 0:
@@ -253,7 +253,7 @@ def train(args, train_dataset, model, tokenizer, featurizer, config):
 
 			file_data = file_data.squeeze()
 
-			example_sampler = RandomSampler(file_data) if args.local_rank == -1 else DistributedSampler(file_data)
+			example_sampler = RandomSampler(file_data, num_samples=len(file_data)) if args.local_rank == -1 else DistributedSampler(file_data)
 			example_loader = DataLoader(file_data, sampler=example_sampler,
 											   	   batch_size=args.train_batch_size)
 			ten_percent_progress_steps = int(len(file_data)/10)
