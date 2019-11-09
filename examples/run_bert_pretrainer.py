@@ -102,11 +102,12 @@ class TextDataset(Dataset):
 						continue
 					cur_sentences = cur_line.split('.')
 					for cur_sent in cur_sentences:
-						cur_sent = tokenizer.convert_tokens_to_ids(tokenizer.tokenize(cur_sent.strip()))
-
+						tokens = tokenizer.tokenize(cur_sent.strip())
+						tokens = tokens[:tokenizer.max_len_sentences_pair]
+						cur_sent = tokenizer.convert_tokens_to_ids(tokens)
 						if len(cur_sent)==0:
 							continue
-						cur_sent = cur_sent[:tokenizer.max_len_sentences_pair]
+
 						if prev_sent is None:
 							prev_sent = cur_sent
 							continue
