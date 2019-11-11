@@ -92,5 +92,5 @@ class BertFeaturizer(PreTrainedFeaturizer):
 		position_ids = None
 		head_mask = None
 
-		outputs = (attention_mask, token_type_ids, position_ids, head_mask, masked_lm_labels, next_sentence_label)
+		outputs = (attention_mask, token_type_ids, position_ids, head_mask, None, masked_lm_labels, next_sentence_label)
 		return inputs, outputs
