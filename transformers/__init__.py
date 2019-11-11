@@ -25,7 +25,10 @@ from .file_utils import (TRANSFORMERS_CACHE, PYTORCH_TRANSFORMERS_CACHE, PYTORCH
 from .data import (is_sklearn_available,
                    InputExample, InputFeatures, DataProcessor,
                    glue_output_modes, glue_convert_examples_to_features,
-                   glue_processors, glue_tasks_num_labels)
+                   glue_processors, glue_tasks_num_labels,
+                   conversational_datasets_output_modes,
+                   conversational_datasets_processors,
+                   conversational_datasets_convert_examples_to_features)
 
 if is_sklearn_available():
     from .data import glue_compute_metrics
