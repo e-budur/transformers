@@ -24,8 +24,15 @@ from io import open
 from transformers.tokenization_bert import *
 
 from .tokenization_utils import PreTrainedTokenizer
-
+import six
 logger = logging.getLogger(__name__)
+
+from .file_utils import cached_path, is_tf_available, is_torch_available
+
+if is_tf_available():
+    import tensorflow as tf
+if is_torch_available():
+    import torch
 
 class BertNLUTokenizer(BertTokenizer):
 
@@ -79,6 +86,14 @@ class BertNLUTokenizer(BertTokenizer):
         sep = [self.sep_token_id]
         return cls + mlb + token_ids_0 + sep + token_ids_1 + sep
 
+    def create_token_type_ids_from_sequences(self, token_ids_0, token_ids_1=None):
+        sep = [self.sep_token_id]
+        cls = [self.cls_token_id]
+        mlb = [self.multi_label_token_id]
+        if token_ids_1 is None:
+            return len(cls + mlb +token_ids_0 + sep) * [0]
+        return len(cls + mlb + token_ids_0 + sep) * [0] + len(token_ids_1 + sep) * [1]
+
     def get_special_tokens_mask(self, token_ids_0, token_ids_1=None, already_has_special_tokens=True):
         """
         Retrieves sequence ids from a token list that has no special tokens added. This method is called when adding
@@ -104,3 +119,76 @@ class BertNLUTokenizer(BertTokenizer):
         if token_ids_1 is not None:
             return [1, 1] + ([0] * len(token_ids_0)) + [1] + ([0] * len(token_ids_1)) + [1]
         return [1, 1] + ([0] * len(token_ids_0)) + [1]
+
+
+
+    def encode_nlu(self, utterance, utterance_tokens, add_special_tokens=True,
+                    max_length=None,
+                    stride=0,
+                    truncation_strategy='longest_first',
+                    return_tensors=None,
+                    **kwargs):
+
+        def get_input_ids(text):
+            if isinstance(text, six.string_types):
+                return self.convert_tokens_to_ids(self.tokenize(text, **kwargs))
+            elif isinstance(text, (list, tuple)) and len(text) > 0 and isinstance(text[0], six.string_types):
+                return self.convert_tokens_to_ids(text)
+            elif isinstance(text, (list, tuple)) and len(text) > 0 and isinstance(text[0], int):
+                return text
+            else:
+                raise ValueError(
+                    "Input is not valid. Should be a string, a list/tuple of strings or a list/tuple of integers.")
+
+        utterance_token_ids = get_input_ids(utterance_tokens)
+
+        return self.prepare_for_model(utterance_token_ids,
+                                      max_length=max_length,
+                                      add_special_tokens=add_special_tokens,
+                                      stride=stride,
+                                      truncation_strategy=truncation_strategy,
+                                      return_tensors=return_tensors)
+
+
+    def prepare_for_model(self, ids, max_length=None, add_special_tokens=True, stride=0,
+                          truncation_strategy='longest_first', return_tensors=None):
+
+        len_ids = len(ids)
+
+        encoded_inputs = {}
+        total_len = len_ids + (self.num_added_tokens(pair=False) if add_special_tokens else 0)
+        if max_length and total_len > max_length:
+            ids, pair_ids, overflowing_tokens = self.truncate_sequences(ids, pair_ids=None,
+                                                                        num_tokens_to_remove=total_len-max_length,
+                                                                        truncation_strategy=truncation_strategy,
+                                                                        stride=stride)
+            encoded_inputs["overflowing_tokens"] = overflowing_tokens
+            encoded_inputs["num_truncated_tokens"] = total_len - max_length
+
+        if add_special_tokens:
+            sequence = self.build_inputs_with_special_tokens(ids, token_ids_1=None)
+            token_type_ids = self.create_token_type_ids_from_sequences(ids, token_ids_1=None)
+            encoded_inputs["special_tokens_mask"] = self.get_special_tokens_mask(ids, token_ids_1=None)
+        else:
+            sequence = ids
+            token_type_ids = [0] * len(ids)
+
+        if return_tensors == 'tf' and is_tf_available():
+            sequence = tf.constant([sequence])
+            token_type_ids = tf.constant([token_type_ids])
+        elif return_tensors == 'pt' and is_torch_available():
+            sequence = torch.tensor([sequence])
+            token_type_ids = torch.tensor([token_type_ids])
+        elif return_tensors is not None:
+            logger.warning("Unable to convert output to tensors format {}, PyTorch or TensorFlow is not available.".format(return_tensors))
+
+        encoded_inputs["input_ids"] = sequence
+        encoded_inputs["token_type_ids"] = token_type_ids
+
+        if max_length and len(encoded_inputs["input_ids"]) > max_length:
+            encoded_inputs["input_ids"] = encoded_inputs["input_ids"][:max_length]
+            encoded_inputs["token_type_ids"] = encoded_inputs["token_type_ids"][:max_length]
+            encoded_inputs["special_tokens_mask"] = encoded_inputs["special_tokens_mask"][:max_length]
+
+        return encoded_inputs
+

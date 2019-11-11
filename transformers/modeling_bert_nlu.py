@@ -221,3 +221,44 @@ class BertNLUForJointUnderstanding(BertNLUForPreTraining):
             outputs = (loss) + outputs
 
         return outputs  # (loss), (intent_logits, enumerable_entity_logits), (hidden_states), (attentions)
+
+
+class BertForJointUnderstanding(BertForPreTraining):
+    def __init__(self, config):
+        super(BertForJointUnderstanding, self).__init__(config)
+        self.num_intents = config.num_intents
+        self.num_enumerable_entities = config.num_enumerable_entities
+
+        self.bert = BertModel(config)
+        self.dropout = nn.Dropout(config.hidden_dropout_prob)
+        self.classifier_intents = nn.Linear(config.hidden_size, self.config.num_intents)
+        self.classifier_enumerable_entities = nn.Linear(config.hidden_size, self.config.num_enumerable_entities)
+
+        self.init_weights()
+
+    def forward(self, input_ids, attention_mask=None, token_type_ids=None,
+                position_ids=None, head_mask=None, intent_labels=None, enumerable_entity_labels=None):
+
+        outputs = self.bert(input_ids,
+                            attention_mask=attention_mask,
+                            token_type_ids=token_type_ids,
+                            position_ids=position_ids,
+                            head_mask=head_mask)
+
+        pooled_output_for_cls = outputs[1]
+
+        pooled_output_for_cls = self.dropout(pooled_output_for_cls)
+        intent_logits = self.classifier_intents(pooled_output_for_cls)
+
+        enumerable_entity_logits = self.classifier_enumerable_entities(pooled_output_for_cls)
+
+        outputs = (intent_logits, enumerable_entity_logits) + outputs[2:]  # add hidden states and attention if they are here
+
+        if intent_labels is not None and enumerable_entity_labels is not None:
+            loss_fct = CrossEntropyLoss()
+            intent_loss = loss_fct(intent_logits.view(-1, self.num_intents), intent_labels.view(-1))
+            enumerable_entity_loss = loss_fct(enumerable_entity_logits.view(-1, self.num_enumerable_entities), enumerable_entity_labels.view(-1))
+            loss = intent_loss + enumerable_entity_loss
+            outputs = (loss) + outputs
+
+        return outputs  # (loss), (intent_logits, enumerable_entity_logits), (hidden_states), (attentions)
