@@ -72,9 +72,9 @@ class BertForJointUnderstandingConfig(BertConfig):
                  type_vocab_size=2,
                  initializer_range=0.02,
                  layer_norm_eps=1e-12,
-                 num_intents=2,
-                 num_enumerable_entities=2,
-                 num_non_enumerable_entities=2,
+                 num_intent_labels=2,
+                 num_enumerable_entity_labels=2,
+                 num_non_enumerable_entity_labels=2,
                  **kwargs):
         super(BertForJointUnderstandingConfig, self).__init__(vocab_size_or_config_json_file,
                                             hidden_size,
@@ -90,9 +90,9 @@ class BertForJointUnderstandingConfig(BertConfig):
                                             layer_norm_eps,
                                             **kwargs)
 
-        self.num_intents = num_intents
-        self.num_enumerable_entities = num_enumerable_entities
-        self.num_non_enumerable_entities = num_non_enumerable_entities
+        self.num_intent_labels = num_intent_labels
+        self.num_enumerable_entity_labels = num_enumerable_entity_labels
+        self.num_non_enumerable_entity_labels = num_non_enumerable_entity_labels
 
 
 class BertNLUForJointUnderstandingConfig(BertForJointUnderstandingConfig):
@@ -110,11 +110,11 @@ class BertNLUForJointUnderstandingConfig(BertForJointUnderstandingConfig):
                  type_vocab_size=2,
                  initializer_range=0.02,
                  layer_norm_eps=1e-12,
-                 num_intents=2,
-                 num_enumerable_entities=2,
-                 num_non_enumerable_entities=2,
+                 num_intent_labels=2,
+                 num_enumerable_entity_labels=2,
+                 num_non_enumerable_entity_labels=2,
                  **kwargs):
-        super(BertForJointUnderstandingConfig, self).__init__(vocab_size_or_config_json_file,
+        super(BertNLUForJointUnderstandingConfig, self).__init__(vocab_size_or_config_json_file,
                                             hidden_size,
                                             num_hidden_layers,
                                             num_attention_heads,
@@ -126,7 +126,7 @@ class BertNLUForJointUnderstandingConfig(BertForJointUnderstandingConfig):
                                             type_vocab_size,
                                             initializer_range,
                                             layer_norm_eps,
-                                            num_intents,
-                                            num_enumerable_entities,
-                                            num_non_enumerable_entities,
+                                            num_intent_labels,
+                                            num_enumerable_entity_labels,
+                                            num_non_enumerable_entity_labels,
                                             **kwargs)

@@ -66,12 +66,12 @@ class GoogleSimuatedDialogueProcessor(DataProcessor):
         self.taxonomy = {
 
             'enumerable_entities': {
-                'category': ['french', 'italian', 'mediterranean', 'taiwanese', 'vietnamese'],
+                'category': ['french', 'indian', 'taiwanese', 'italian', 'mexican', 'greek', 'mediterranean',
+                              'chinese', 'thai', 'vietnamese'],
                 'date': [  'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday','today', 'tonight', 'tomorrow', 'next monday'],
                 'meal': ['brunch', 'lunch', 'breakfast', 'dinner'],
-                'price_range': ['expensive', 'inexpensive'],
-                'rating': ['michelin rated', 'zagat rated']
-
+                'price_range': ['expensive', 'inexpensive', 'moderately priced'],
+                'rating': ['michelin rated', 'zagat rated', 'good']
             },
             'non_enumerable_entities': {
                 'location': ['madison', 'middletown', 'redmond', 'yorktown heights'],
@@ -93,6 +93,8 @@ class GoogleSimuatedDialogueProcessor(DataProcessor):
         with codecs.open(file_name, encoding='utf-8') as json_file:
             conversations = json.load(json_file)
             return conversations
+
+
 
     def convert_to_nlu_data_in_conversation(self, conversation):
 
@@ -126,7 +128,11 @@ class GoogleSimuatedDialogueProcessor(DataProcessor):
                     slot_value = (' '.join(tokens[start:exclusive_end]))
 
                     if slot_name in self.taxonomy['enumerable_entities']:
-                        nlu_data['entities']['enumerable'].append('='.join([slot_name, slot_value]))
+                        enumerable_entity='='.join([slot_name, slot_value])
+                        if slot_name not in self.enumerable_entities:
+                            self.enumerable_entities[slot_name] = set()
+                        self.enumerable_entities[slot_name].add(slot_value)
+                        nlu_data['entities']['enumerable'].append(enumerable_entity)
                     elif slot_name in self.taxonomy['non_enumerable_entities']:
                         nlu_data['entities']['non_enumerable'].append('='.join([slot_name, slot_value]))
                         nlu_data['slot_labels'][start] = 'B-' + slot_name
@@ -141,19 +147,21 @@ class GoogleSimuatedDialogueProcessor(DataProcessor):
                                        slot_labels=nlu_data['slot_labels']
                                        )
             nlu_data_in_conversation.append(example)
+
         return nlu_data_in_conversation
 
     def create_nlu_dataset(self, data_dir, domains, set_type):
         nlu_dataset = []
-
+        self.enumerable_entities = dict()
         for domain_name in domains:
             file_name = os.path.join(data_dir, domain_name, set_type+'.json')
             conversations = self._read_json(file_name)
 
             for conversation in conversations:
                 nlu_data_in_conversation = self.convert_to_nlu_data_in_conversation(conversation)
-                nlu_dataset.extend(nlu_data_in_conversation)
 
+                nlu_dataset.extend(nlu_data_in_conversation)
+        print(self.enumerable_entities)
         return nlu_dataset
 
     def _create_examples(self, data_dir, domains=['sim-M', 'sim-R'], set_type='train'):
@@ -180,32 +188,33 @@ class GoogleSimuatedDialogueProcessor(DataProcessor):
                 enumerable_entity_labels.append(enumerable_entity_label)
 
         non_enumerable_entity_labels = []
+        non_enumerable_entity_labels.append('O')
         for non_enumerable_entity_key in self.taxonomy['non_enumerable_entities'].keys():
             non_enumerable_entity_labels.append('B-'+non_enumerable_entity_key)
             non_enumerable_entity_labels.append('I-' + non_enumerable_entity_key)
-            non_enumerable_entity_labels.append('O')
+
         return intent_labels, enumerable_entity_labels, non_enumerable_entity_labels
 
 
 def conversational_datasets_convert_examples_to_features(examples, tokenizer,
                                       max_length=512,
                                       task=None,
-                                      intent_labels=None,
-                                      enumerable_entity_labels=None,
-                                      non_enumerable_entity_labels=None,
+                                      list_of_intent_labels=None,
+                                      list_of_enumerable_entity_labels=None,
+                                      list_of_non_enumerable_entity_labels=None,
                                       output_mode=None,
                                       pad_on_left=False,
                                       pad_token=0,
                                       pad_token_segment_id=0,
                                       mask_padding_with_zero=True):
 
-    logger.info("Using intent_labels %s for task %s" % (intent_labels, task))
-    logger.info("Using enumerable_entity_labels %s for task %s" % (enumerable_entity_labels, task))
-    logger.info("Using non_enumerable_entity_labels %s for task %s" % (non_enumerable_entity_labels, task))
+    logger.info("Using intent_labels %s for task %s" % (list_of_intent_labels, task))
+    logger.info("Using enumerable_entity_labels %s for task %s" % (list_of_enumerable_entity_labels, task))
+    logger.info("Using non_enumerable_entity_labels %s for task %s" % (list_of_non_enumerable_entity_labels, task))
 
-    intent_labels_map = {label: i for i, label in enumerate(intent_labels)}
-    enumerable_entity_labels_map = {label: i for i, label in enumerate(enumerable_entity_labels)}
-    non_enumerable_entity_labels_map = {label: i for i, label in enumerate(non_enumerable_entity_labels)}
+    intent_labels_map = {label: i for i, label in enumerate(list_of_intent_labels)}
+    enumerable_entity_labels_map = {label: i for i, label in enumerate(list_of_enumerable_entity_labels)}
+    non_enumerable_entity_labels_map = {label: i for i, label in enumerate(list_of_non_enumerable_entity_labels)}
 
     features = []
     for (ex_index, example) in enumerate(examples):
@@ -240,8 +249,14 @@ def conversational_datasets_convert_examples_to_features(examples, tokenizer,
         assert len(token_type_ids) == max_length, "Error with input length {} vs {}".format(len(token_type_ids), max_length)
 
         intent_label = intent_labels_map[example.intent]
-        enumerable_entity_labels = [enumerable_entity_labels_map[entity] for entity in example.enumerable_entities]
+        enumerable_entity_labels = [0]*len(list_of_enumerable_entity_labels)
+        for entity in example.enumerable_entities:
+            entity_index = enumerable_entity_labels_map[entity]
+            enumerable_entity_labels[entity_index] = 1
+
         non_enumerable_entity_labels = [non_enumerable_entity_labels_map[slot_label] for slot_label in example.slot_labels]
+        pad_length = max_length - len(non_enumerable_entity_labels)
+        non_enumerable_entity_labels = non_enumerable_entity_labels + [0]*pad_length
 
         if ex_index < 5:
             logger.info("*** Example ***")
@@ -249,7 +264,7 @@ def conversational_datasets_convert_examples_to_features(examples, tokenizer,
             logger.info("attention_mask: %s" % " ".join([str(x) for x in attention_mask]))
             logger.info("token_type_ids: %s" % " ".join([str(x) for x in token_type_ids]))
             logger.info("intent_label: %s (id = %d)" % (example.intent, intent_label))
-            logger.info("enumerable_labels: %s (ids = %s)" % (example.enumerable_entities, ','.join(enumerable_entity_labels)))
+            logger.info("enumerable_labels: %s (ids = %s)" % (example.enumerable_entities, ','.join(str(x) for x in enumerable_entity_labels)))
             logger.info("non_enumerable_entity_labels: %s (ids = %s)" % (example.non_enumerable_entities, ','.join(str(x) for x in non_enumerable_entity_labels)))
 
         features.append(InputTurnFeatures(input_ids=input_ids,

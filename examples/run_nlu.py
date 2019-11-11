@@ -141,7 +141,10 @@ def train(args, train_dataset, model, tokenizer):
             batch = tuple(t.to(args.device) for t in batch)
             inputs = {'input_ids':      batch[0],
                       'attention_mask': batch[1],
-                      'labels':         batch[3]}
+                      'intent_labels':  batch[3],
+                      'enumerable_entity_labels': batch[4],
+                      'non_enumerable_entity_labels': batch[5]
+                      }
             if args.model_type != 'distilbert':
                 inputs['token_type_ids'] = batch[2] if args.model_type in ['bert', 'xlnet'] else None  # XLM, DistilBERT and RoBERTa don't use segment_ids
             outputs = model(**inputs)
@@ -290,13 +293,13 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False):
         features = torch.load(cached_features_file)
     else:
         logger.info("Creating features from dataset file at %s", args.data_dir)
-        intent_labels, enumerable_entity_labels, non_enumerable_entity_labels = processor.get_labels()
+        list_of_intent_labels, list_of_enumerable_entity_labels, list_of_non_enumerable_entity_labels = processor.get_labels()
         examples = processor.get_dev_examples(args.data_dir) if evaluate else processor.get_train_examples(args.data_dir)
         features = convert_examples_to_features(examples,
                                                 tokenizer,
-                                                intent_labels=intent_labels,
-                                                enumerable_entity_labels=enumerable_entity_labels,
-                                                non_enumerable_entity_labels=non_enumerable_entity_labels,
+                                                list_of_intent_labels=list_of_intent_labels,
+                                                list_of_enumerable_entity_labels=list_of_enumerable_entity_labels,
+                                                list_of_non_enumerable_entity_labels=list_of_non_enumerable_entity_labels,
                                                 max_length=args.max_seq_length,
                                                 output_mode=output_mode,
                                                 pad_on_left=bool(args.model_type in ['xlnet']),                 # pad on the left for xlnet
@@ -314,12 +317,13 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False):
     all_input_ids = torch.tensor([f.input_ids for f in features], dtype=torch.long)
     all_attention_mask = torch.tensor([f.attention_mask for f in features], dtype=torch.long)
     all_token_type_ids = torch.tensor([f.token_type_ids for f in features], dtype=torch.long)
-    if output_mode == "classification":
-        all_labels = torch.tensor([f.label for f in features], dtype=torch.long)
-    elif output_mode == "regression":
-        all_labels = torch.tensor([f.label for f in features], dtype=torch.float)
 
-    dataset = TensorDataset(all_input_ids, all_attention_mask, all_token_type_ids, all_labels)
+    all_intent_labels = torch.tensor([f.intent_label for f in features], dtype=torch.long)
+    all_enumerable_entity_labels = torch.tensor([f.enumerable_entity_labels for f in features], dtype=torch.float32)
+    non_enumerable_entity_features = [f.non_enumerable_entity_labels for f in features]
+    all_non_enumerable_entity_labels = torch.tensor(non_enumerable_entity_features, dtype=torch.long)
+
+    dataset = TensorDataset(all_input_ids, all_attention_mask, all_token_type_ids, all_intent_labels, all_enumerable_entity_labels, all_non_enumerable_entity_labels)
     return dataset
 
 
