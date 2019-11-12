@@ -54,6 +54,7 @@ class BertFeaturizer(PreTrainedFeaturizer):
 		second_part = np.arange(rotation_count, max_index).tolist()
 		# concat the indices in fipped order such that the resulting index becomes rotated
 		indices = second_part + first_part
+		indices = indices[:max_index]
 		return indices
 
 	def _get_negative_examples(self, inputs, tokenizer, args, config):
