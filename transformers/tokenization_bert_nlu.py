@@ -57,9 +57,12 @@ class BertNLUTokenizer(BertTokenizer):
                 This should likely be deactivated for Japanese:
                 see: https://github.com/huggingface/pytorch-pretrained-BERT/issues/328
         """
+        if 'additional_special_tokens' not in kwargs:
+            kwargs['additional_special_tokens'] = [multi_label_token]
+
         super(BertNLUTokenizer, self).__init__(vocab_file, do_lower_case, do_basic_tokenize, never_split,
                  unk_token, sep_token, pad_token, cls_token,
-                 mask_token, tokenize_chinese_chars, additional_special_tokens=[multi_label_token], **kwargs)
+                 mask_token, tokenize_chinese_chars, **kwargs)
 
         self.multi_label_token = multi_label_token
         self.max_len_single_sentence = self.max_len - 3  # take into account special tokens
