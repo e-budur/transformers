@@ -229,10 +229,11 @@ class BertNLUForJointUnderstanding(BertNLUForPreTraining):
             loss_fct = CrossEntropyLoss()
             loss_multi_label = MultiLabelSoftMarginLoss()
             intent_loss = loss_fct(intent_logits.view(-1, self.num_intent_labels), intent_labels.view(-1))
-            enumerable_entity_loss = loss_multi_label(enumerable_entity_logits.view(-1, self.num_enumerable_entity_labels), enumerable_entity_labels.view(-1))
+            enumerable_entity_loss = loss_multi_label(enumerable_entity_logits.view(-1, self.num_enumerable_entity_labels), enumerable_entity_labels)
             non_enumerable_entity_loss = loss_fct(
                 non_enumerable_entity_logits.view(-1, self.num_non_enumerable_entity_labels),
                 non_enumerable_entity_labels.view(-1))
+
             loss = intent_loss + enumerable_entity_loss + non_enumerable_entity_loss
             outputs = (loss,) + outputs
 
