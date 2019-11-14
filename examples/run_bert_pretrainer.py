@@ -144,9 +144,8 @@ class TextDataset(Dataset):
 
 	def __getitem__(self, index):
 
-		logger.info("\nReading file:\n", self.cached_file_paths[index])
-
 		try:
+			logger.info("\n{} - Reading file : {}\n".format(index, self.cached_file_paths[index]))
 			examples = load(self.cached_file_paths[index])
 		except Exception as error:
 			logger.info('Failed to read file for some reasons: '+ str(error))
