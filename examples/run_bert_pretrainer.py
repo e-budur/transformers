@@ -265,7 +265,10 @@ def train(args, train_dataset, model, tokenizer, featurizer, config):
 			total_example_count = len(file_data)
 			total_num_steps = int(total_example_count/args.train_batch_size)
 			example_iterator = tqdm(example_loader, desc="Examples", miniters=int(total_num_steps / 10.0))
-			for step, batch in enumerate(example_iterator):
+
+			step = -1
+			for batch in example_iterator:
+				step += 1
 				inputs, outputs = featurizer.featurize(batch, tokenizer, args, config)
 				inputs = inputs.to(args.device)
 				outputs = [output.to(args.device) if output is not None else None for output in outputs]
