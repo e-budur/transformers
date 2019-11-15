@@ -264,7 +264,7 @@ def train(args, train_dataset, model, tokenizer, featurizer, config):
 
 			total_example_count = len(file_data)
 			total_num_steps = int(total_example_count/args.train_batch_size)
-			example_iterator = tqdm(example_loader, desc="Examples", miniters=int(total_num_steps / 10.0))
+			example_iterator = tqdm(example_loader, desc="Examples", maxinterval=60*60, miniters=int(total_num_steps / 10.0))
 
 			step = -1
 			for batch in example_iterator:
