@@ -65,7 +65,6 @@ logger = logging.getLogger(__name__)
 
 
 
-
 MODEL_CLASSES = {
 	'bert': (BertConfig, BertForPreTraining, BertTokenizer, BertFeaturizer),
 	'bert-nlu': (BertNLUConfig, BertNLUForPreTraining, BertNLUTokenizer, BertNLUFeaturizer)
@@ -262,10 +261,11 @@ def train(args, train_dataset, model, tokenizer, featurizer, config):
 			example_sampler = RandomSampler(file_data) if args.local_rank == -1 else DistributedSampler(file_data)
 			example_loader = DataLoader(file_data, sampler=example_sampler,
 											   	   batch_size=args.train_batch_size)
-			ten_percent_progress_steps = int(len(file_data)/10)
-			for step, batch in enumerate(example_loader):
-				if step % ten_percent_progress_steps == 0:
-					logger.info(" Step = %d, %d percent", step, int(step*1.0/ten_percent_progress_steps))
+
+			total_example_count = len(file_data)
+			total_num_steps = int(total_example_count/args.train_batch_size)
+			example_iterator = tqdm(example_loader, desc="Examples", miniters=int(total_num_steps / 10.0))
+			for step, batch in enumerate(example_iterator):
 				inputs, outputs = featurizer.featurize(batch, tokenizer, args, config)
 				inputs = inputs.to(args.device)
 				outputs = [output.to(args.device) if output is not None else None for output in outputs]
@@ -441,6 +441,8 @@ def main():
 	logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
 						datefmt='%m/%d/%Y %H:%M:%S',
 						level=logging.INFO if args.local_rank in [-1, 0] else logging.WARN)
+
+	logger.setLevel(logging.INFO if args.local_rank in [-1, 0] else logging.WARN)
 	logger.warning("Process rank: %s, device: %s, n_gpu: %s, distributed training: %s, 16-bits training: %s",
 				   args.local_rank, device, args.n_gpu, bool(args.local_rank != -1), args.fp16)
 
