@@ -208,9 +208,11 @@ def train(args, train_dataset, model, tokenizer):
             if args.max_steps > 0 and global_step > args.max_steps:
                 example_iterator.close()
                 break
+            logger.info('\n')
         if args.max_steps > 0 and global_step > args.max_steps:
             train_iterator.close()
             break
+        logger.info('\n')
 
     if args.local_rank in [-1, 0]:
         tb_writer.close()
