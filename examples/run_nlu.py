@@ -146,7 +146,8 @@ def train(args, train_dataset, model, tokenizer):
         for batch in example_iterator:
             step += 1
             if step %10 == 0:
-                print('\n')
+                example_iterator.set_description(desc + " Loss:" + str(loss.item())+'\n')
+                example_iterator.refresh()  # to show immediately the update
             model.train()
             batch = tuple(t.to(args.device) for t in batch)
             inputs = {'input_ids':      batch[0],
@@ -159,9 +160,6 @@ def train(args, train_dataset, model, tokenizer):
                 inputs['token_type_ids'] = batch[2] if args.model_type in ['bert', 'bert-nlu', 'xlnet'] else None  # XLM, DistilBERT and RoBERTa don't use segment_ids
             outputs = model(**inputs)
             loss = outputs[0]  # model outputs are always tuple in transformers (see doc)
-
-            example_iterator.set_description(desc + " Loss:" + str(loss))
-            example_iterator.refresh()  # to show immediately the update
 
             if args.n_gpu > 1:
                 loss = loss.mean() # mean() to average on multi-gpu parallel training
