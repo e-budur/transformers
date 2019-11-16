@@ -102,10 +102,10 @@ if _has_sklearn:
         }
 
 
-    def nlu_compute_metrics(task_name, preds, labels, processor):
+    def nlu_compute_metrics(task_name, preds, labels, target_names):
 
         if task_name == "google-simulated-dialogue":
-            return acc_and_classification_report_for_nlu(preds, labels, processor)
+            return acc_and_classification_report_for_nlu(preds, labels, target_names)
         else:
             raise KeyError(task_name)
 

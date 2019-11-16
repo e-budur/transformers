@@ -298,12 +298,12 @@ def evaluate(args, model, tokenizer, processor, prefix=""):
             'non_enumerable_entities': out_non_enumerable_entity_labels_ids
         }
 
-        target_labels = {
+        target_names = {
             'intents': processor.get_intents_labels(),
             'enumerable_entities': processor.get_enumerable_entity_labels(),
             'non_enumerable_entities': processor.get_non_enumerable_entity_labels()
         }
-        result = compute_metrics(eval_task, preds, labels, target_labels=target_labels)
+        result = compute_metrics(eval_task, preds, labels, target_names=target_names)
         results.update(result)
 
         output_eval_file = os.path.join(eval_output_dir, prefix, "eval_results.txt")
