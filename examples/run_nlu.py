@@ -136,8 +136,14 @@ def train(args, train_dataset, model, tokenizer):
     train_iterator = trange(int(args.num_train_epochs), desc="Epoch", disable=args.local_rank not in [-1, 0])
     set_seed(args)  # Added here for reproductibility (even between python 2 and 3)
     for _ in train_iterator:
-        epoch_iterator = tqdm(train_dataloader, desc="Iteration", disable=args.local_rank not in [-1, 0])
-        for step, batch in enumerate(epoch_iterator):
+        total_example_count = len(train_dataset)
+        total_num_steps = int(total_example_count / args.train_batch_size)
+        example_iterator = tqdm(train_dataloader, desc="Iterating over training examples", maxinterval=60 * 60,
+                                miniters=int(total_num_steps / 10.0))
+
+        step = -1
+        for batch in example_iterator:
+            step += 1
             model.train()
             batch = tuple(t.to(args.device) for t in batch)
             inputs = {'input_ids':      batch[0],
@@ -246,7 +252,14 @@ def evaluate(args, model, tokenizer, processor, prefix=""):
         out_enumerable_entity_labels_ids = None
         non_enumerable_entity_ids = None
 
-        for batch in tqdm(eval_dataloader, desc="Evaluating"):
+        total_example_count = len(eval_dataset)
+        total_num_steps = int(total_example_count / args.train_batch_size)
+        example_iterator = tqdm(eval_dataloader, desc="Iterating over evaluation examples", maxinterval=60 * 60,
+                                miniters=int(total_num_steps / 10.0))
+
+        step = -1
+        for batch in example_iterator:
+            step += 1
             model.eval()
             batch = tuple(t.to(args.device) for t in batch)
 
