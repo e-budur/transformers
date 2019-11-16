@@ -293,6 +293,8 @@ def conversational_datasets_convert_examples_to_features(examples, tokenizer,
             logger.info("intent_label: %s (id = %d)" % (example.intent, intent_label))
             logger.info("enumerable_labels: %s (ids = %s)" % (example.enumerable_entities, ','.join(str(x) for x in enumerable_entity_labels)))
             logger.info("non_enumerable_entity_labels: %s (ids = %s)" % (example.non_enumerable_entities, ','.join(str(x) for x in non_enumerable_entity_labels)))
+            logger.info("non_enumerable_entity_labels_decoded: %s (ids = %s)" % (
+            example.non_enumerable_entities, ','.join(list_of_non_enumerable_entity_labels[x] for x in non_enumerable_entity_labels)))
 
         features.append(InputTurnFeatures(input_ids=input_ids,
                               attention_mask=attention_mask,
