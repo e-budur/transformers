@@ -138,7 +138,8 @@ def train(args, train_dataset, model, tokenizer):
     for _ in train_iterator:
         total_example_count = len(train_dataset)
         total_num_steps = int(total_example_count / args.train_batch_size)
-        example_iterator = tqdm(train_dataloader, desc="Iterating over training examples", maxinterval=60 * 60,
+        desc = "Iterating over training examples."
+        example_iterator = tqdm(train_dataloader, desc=desc, maxinterval=60 * 60,
                                 miniters=int(total_num_steps / 10.0))
 
         step = -1
@@ -158,6 +159,9 @@ def train(args, train_dataset, model, tokenizer):
                 inputs['token_type_ids'] = batch[2] if args.model_type in ['bert', 'bert-nlu', 'xlnet'] else None  # XLM, DistilBERT and RoBERTa don't use segment_ids
             outputs = model(**inputs)
             loss = outputs[0]  # model outputs are always tuple in transformers (see doc)
+
+            example_iterator.set_description(desc % " Loss:" % loss)
+            example_iterator.refresh()  # to show immediately the update
 
             if args.n_gpu > 1:
                 loss = loss.mean() # mean() to average on multi-gpu parallel training
