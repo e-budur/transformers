@@ -206,7 +206,7 @@ def train(args, train_dataset, model, tokenizer):
                 global_step += 1
 
             if args.max_steps > 0 and global_step > args.max_steps:
-                epoch_iterator.close()
+                example_iterator.close()
                 break
         if args.max_steps > 0 and global_step > args.max_steps:
             train_iterator.close()
