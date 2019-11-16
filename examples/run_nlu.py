@@ -142,12 +142,14 @@ def train(args, train_dataset, model, tokenizer):
         example_iterator = tqdm(train_dataloader, desc=desc, maxinterval=60 * 60,
                                 miniters=int(total_num_steps / 10.0))
 
+        loss = None
         step = -1
         for batch in example_iterator:
             step += 1
             if step %10 == 0:
-                example_iterator.set_description(desc + " Loss:" + str(loss.item())+'\n')
-                example_iterator.refresh()  # to show immediately the update
+                if loss is not None:
+                    example_iterator.set_description(desc + " Loss:" + str(loss.item())+'\n')
+                    example_iterator.refresh()  # to show immediately the update
             model.train()
             batch = tuple(t.to(args.device) for t in batch)
             inputs = {'input_ids':      batch[0],
