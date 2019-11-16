@@ -253,7 +253,7 @@ def evaluate(args, model, tokenizer, processor, prefix=""):
         out_non_enumerable_entity_labels_ids = None
 
         total_example_count = len(eval_dataset)
-        total_num_steps = int(total_example_count / args.train_batch_size)
+        total_num_steps = int(total_example_count / args.eval_batch_size)
         example_iterator = tqdm(eval_dataloader, desc="Iterating over evaluation examples", maxinterval=60 * 60,
                                 miniters=int(total_num_steps / 10.0))
 
@@ -271,7 +271,7 @@ def evaluate(args, model, tokenizer, processor, prefix=""):
                           'non_enumerable_entity_labels': batch[5]
                           }
                 if args.model_type != 'distilbert':
-                    inputs['token_type_ids'] = batch[2] if args.model_type in ['bert', 'xlnet'] else None  # XLM, DistilBERT and RoBERTa don't use segment_ids
+                    inputs['token_type_ids'] = batch[2] if args.model_type in ['bert', 'bert-nlu', 'xlnet'] else None  # XLM, DistilBERT and RoBERTa don't use segment_ids
                 outputs = model(**inputs)
                 tmp_eval_loss, intent_logits, enumerable_entity_logits, non_enumerable_entity_logits = outputs[:4]
 
