@@ -55,7 +55,7 @@ from transformers import (WEIGHTS_NAME, BertConfig,
 
 from transformers import AdamW, WarmupLinearSchedule
 
-from transformers import glue_compute_metrics as compute_metrics
+from transformers import nlu_compute_metrics as compute_metrics
 from transformers import conversational_datasets_output_modes as output_modes
 from transformers import conversational_datasets_processors as processors
 from transformers import conversational_datasets_convert_examples_to_features as convert_examples_to_features
@@ -81,6 +81,7 @@ def set_seed(args):
 
 def train(args, train_dataset, model, tokenizer):
     """ Train the model """
+    logger.info("Training starts")
     if args.local_rank in [-1, 0]:
         tb_writer = SummaryWriter()
 
@@ -207,16 +208,18 @@ def train(args, train_dataset, model, tokenizer):
 
     if args.local_rank in [-1, 0]:
         tb_writer.close()
-
+    logger.info("Training ended")
     return global_step, tr_loss / global_step
 
 
-def evaluate(args, model, tokenizer, prefix=""):
+def evaluate(args, model, tokenizer, processor, prefix=""):
+    logger.info("Evaluation starts")
     # Loop to handle MNLI double evaluation (matched, mis-matched)
     eval_task_names = ("mnli", "mnli-mm") if args.task_name == "mnli" else (args.task_name,)
     eval_outputs_dirs = (args.output_dir, args.output_dir + '-MM') if args.task_name == "mnli" else (args.output_dir,)
 
     results = {}
+
     for eval_task, eval_output_dir in zip(eval_task_names, eval_outputs_dirs):
         eval_dataset = load_and_cache_examples(args, eval_task, tokenizer, evaluate=True)
 
@@ -234,8 +237,15 @@ def evaluate(args, model, tokenizer, prefix=""):
         logger.info("  Batch size = %d", args.eval_batch_size)
         eval_loss = 0.0
         nb_eval_steps = 0
-        preds = None
-        out_label_ids = None
+
+        intent_preds = None
+        enumerable_entity_preds = None
+        non_enumerable_entity_preds = None
+
+        out_intent_labels_ids = None
+        out_enumerable_entity_labels_ids = None
+        non_enumerable_entity_ids = None
+
         for batch in tqdm(eval_dataloader, desc="Evaluating"):
             model.eval()
             batch = tuple(t.to(args.device) for t in batch)
@@ -250,32 +260,64 @@ def evaluate(args, model, tokenizer, prefix=""):
                 if args.model_type != 'distilbert':
                     inputs['token_type_ids'] = batch[2] if args.model_type in ['bert', 'xlnet'] else None  # XLM, DistilBERT and RoBERTa don't use segment_ids
                 outputs = model(**inputs)
-                tmp_eval_loss, logits = outputs[:2]
+                tmp_eval_loss, intent_logits, enumerable_entity_logits, non_enumerable_entity_logits = outputs[:4]
 
                 eval_loss += tmp_eval_loss.mean().item()
             nb_eval_steps += 1
-            if preds is None:
-                preds = logits.detach().cpu().numpy()
-                out_label_ids = inputs['labels'].detach().cpu().numpy()
+            if intent_preds is None:
+                intent_preds = intent_logits.detach().cpu().numpy()
+                enumerable_entity_preds = enumerable_entity_logits.detach().cpu().numpy()
+                non_enumerable_entity_preds = non_enumerable_entity_logits.detach().cpu().numpy()
+
+                out_intent_labels_ids = inputs['intent_labels'].detach().cpu().numpy()
+                out_enumerable_entity_labels_ids = inputs['enumerable_entity_labels'].detach().cpu().numpy()
+                out_non_enumerable_entity_labels_ids = inputs['non_enumerable_entity_labels'].detach().cpu().numpy()
             else:
-                preds = np.append(preds, logits.detach().cpu().numpy(), axis=0)
-                out_label_ids = np.append(out_label_ids, inputs['labels'].detach().cpu().numpy(), axis=0)
+                intent_preds = np.append(intent_preds, intent_logits.detach().cpu().numpy(), axis=0)
+                enumerable_entity_preds = np.append(enumerable_entity_preds, enumerable_entity_logits.detach().cpu().numpy(), axis=0)
+                non_enumerable_entity_preds = np.append(non_enumerable_entity_preds, non_enumerable_entity_logits.detach().cpu().numpy(), axis=0)
+
+                out_intent_labels_ids = np.append(out_intent_labels_ids, inputs['intent_labels'].detach().cpu().numpy(), axis=0)
+                out_enumerable_entity_labels_ids = np.append(out_enumerable_entity_labels_ids, inputs['enumerable_entity_labels'].detach().cpu().numpy(), axis=0)
+                out_non_enumerable_entity_labels_ids = np.append(out_non_enumerable_entity_labels_ids, inputs['non_enumerable_entity_labels'].detach().cpu().numpy(), axis=0)
 
         eval_loss = eval_loss / nb_eval_steps
-        if args.output_mode == "classification":
-            preds = np.argmax(preds, axis=1)
-        elif args.output_mode == "regression":
-            preds = np.squeeze(preds)
-        result = compute_metrics(eval_task, preds, out_label_ids)
+        intent_preds = np.argmax(intent_preds, axis=1)
+        enumerable_entity_preds = (enumerable_entity_preds>0.5)*1
+        non_enumerable_entity_preds = np.argmax(non_enumerable_entity_preds, axis=2)
+
+        preds = {
+            'intents': intent_preds,
+            'enumerable_entities': enumerable_entity_preds,
+            'non_enumerable_entities': non_enumerable_entity_preds
+        }
+
+        labels = {
+            'intents': out_intent_labels_ids,
+            'enumerable_entities': out_enumerable_entity_labels_ids,
+            'non_enumerable_entities': out_non_enumerable_entity_labels_ids
+        }
+
+        target_labels = {
+            'intents': processor.get_intents_labels(),
+            'enumerable_entities': processor.get_enumerable_entity_labels(),
+            'non_enumerable_entities': processor.get_non_enumerable_entity_labels()
+        }
+        result = compute_metrics(eval_task, preds, labels, target_labels=target_labels)
         results.update(result)
 
         output_eval_file = os.path.join(eval_output_dir, prefix, "eval_results.txt")
         with open(output_eval_file, "w") as writer:
-            logger.info("***** Eval results {} *****".format(prefix))
-            for key in sorted(result.keys()):
-                logger.info("  %s = %s", key, str(result[key]))
-                writer.write("%s = %s\n" % (key, str(result[key])))
+            logger.info("***** Eval results {} *****\n".format(prefix))
+            for header, sub_results in results:
+                header = "---- " + header +" ----\n"
+                logger.info(header)
+                writer.write(header)
 
+                for key in sorted(sub_results.keys()):
+                    logger.info("  %s = %s", key, str(sub_results[key]))
+                    writer.write("%s = %s\n" % (key, str(sub_results[key])))
+    logger.info("Evaluation ended")
     return results
 
 
@@ -463,6 +505,7 @@ def main():
     logging.basicConfig(format = '%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                         datefmt = '%m/%d/%Y %H:%M:%S',
                         level = logging.INFO if args.local_rank in [-1, 0] else logging.WARN)
+    logger.setLevel(logging.INFO if args.local_rank in [-1, 0] else logging.WARN)
     logger.warning("Process rank: %s, device: %s, n_gpu: %s, distributed training: %s, 16-bits training: %s",
                     args.local_rank, device, args.n_gpu, bool(args.local_rank != -1), args.fp16)
 
@@ -553,7 +596,8 @@ def main():
             
             model = model_class.from_pretrained(checkpoint)
             model.to(args.device)
-            result = evaluate(args, model, tokenizer, prefix=prefix)
+            result = evaluate(args, model, tokenizer, processor, prefix=prefix)
+
             result = dict((k + '_{}'.format(global_step), v) for k, v in result.items())
             results.update(result)
 

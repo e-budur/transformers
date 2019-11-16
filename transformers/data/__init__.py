@@ -5,3 +5,4 @@ from .processors import conversational_datasets_output_modes, conversational_dat
 from .metrics import is_sklearn_available
 if is_sklearn_available():
     from .metrics import glue_compute_metrics
+    from .metrics import nlu_compute_metrics

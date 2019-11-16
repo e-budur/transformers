@@ -177,24 +177,51 @@ class GoogleSimuatedDialogueProcessor(DataProcessor):
     def get_test_examples(self, data_dir):
         return self._create_examples(data_dir, domains=['sim-M', 'sim-R'], set_type='test')
 
-    def get_labels(self):
-        """Gets the list of labels for this data set."""
-        intent_labels = self.taxonomy['intents']
+    def get_intents_labels(self):
+        intents_labels = self.taxonomy['intents']
+        return intents_labels
 
+    def get_enumerable_entity_labels(self):
         enumerable_entity_labels = []
         for enumerable_entity_key, enumerable_entity_values in self.taxonomy['enumerable_entities'].items():
             for enumerable_entity_value in enumerable_entity_values:
                 enumerable_entity_label = enumerable_entity_key + '=' + enumerable_entity_value
                 enumerable_entity_labels.append(enumerable_entity_label)
+        return enumerable_entity_labels
 
+    def get_non_enumerable_entity_labels(self):
         non_enumerable_entity_labels = []
         non_enumerable_entity_labels.append('O')
         for non_enumerable_entity_key in self.taxonomy['non_enumerable_entities'].keys():
-            non_enumerable_entity_labels.append('B-'+non_enumerable_entity_key)
+            non_enumerable_entity_labels.append('B-' + non_enumerable_entity_key)
             non_enumerable_entity_labels.append('I-' + non_enumerable_entity_key)
+
+        return non_enumerable_entity_labels
+
+    def get_labels(self):
+        """Gets the list of labels for this data set."""
+        intent_labels = self.taxonomy['intents']
+
+        enumerable_entity_labels = self.get_enumerable_entity_labels()
+
+        non_enumerable_entity_labels = self.get_non_enumerable_entity_labels()
 
         return intent_labels, enumerable_entity_labels, non_enumerable_entity_labels
 
+    def decode_intent_preds(self, intent_preds):
+        intents_labels = self.get_intents_labels()
+        intent_preds_decoded = intents_labels[intent_preds]
+        return intent_preds_decoded
+
+    def decode_enumerable_enitity_preds(self, enumerable_entity_preds):
+        enumerable_entity_labels = self.get_enumerable_entity_labels()
+        enumerable_entity_preds_decoded = enumerable_entity_labels[enumerable_entity_preds]
+        return enumerable_entity_preds_decoded
+
+    def decode_non_enumerable_enitity_preds(self, non_enumerable_enitity_preds):
+        non_enumerable_entity_labels = self.get_non_enumerable_entity_labels()
+        non_enumerable_enitity_preds_decoded = non_enumerable_entity_labels[non_enumerable_enitity_preds]
+        return non_enumerable_enitity_preds_decoded
 
 def conversational_datasets_convert_examples_to_features(examples, tokenizer,
                                       max_length=512,

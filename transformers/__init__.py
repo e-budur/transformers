@@ -32,6 +32,7 @@ from .data import (is_sklearn_available,
 
 if is_sklearn_available():
     from .data import glue_compute_metrics
+    from .data import nlu_compute_metrics
 
 # Tokenizers
 from .tokenization_utils import (PreTrainedTokenizer)
