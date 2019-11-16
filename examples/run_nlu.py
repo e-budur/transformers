@@ -144,6 +144,8 @@ def train(args, train_dataset, model, tokenizer):
         step = -1
         for batch in example_iterator:
             step += 1
+            if step %10 == 0:
+                logger.info('\n')
             model.train()
             batch = tuple(t.to(args.device) for t in batch)
             inputs = {'input_ids':      batch[0],
@@ -208,11 +210,10 @@ def train(args, train_dataset, model, tokenizer):
             if args.max_steps > 0 and global_step > args.max_steps:
                 example_iterator.close()
                 break
-            logger.info('\n')
+
         if args.max_steps > 0 and global_step > args.max_steps:
             train_iterator.close()
             break
-        logger.info('\n')
 
     if args.local_rank in [-1, 0]:
         tb_writer.close()
