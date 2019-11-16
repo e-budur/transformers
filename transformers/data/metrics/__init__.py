@@ -61,16 +61,23 @@ if _has_sklearn:
         return acc_for_nlu_result
 
 
+    def simple_classification_report(preds, labels, target_names):
+        simple_classification_report_result=classification_report(y_true=labels,
+                                                                  y_pred=preds,
+                                                                  labels=range(len(target_names)),
+                                                                  target_names=target_names)
+        return simple_classification_report_result
+
     def classification_report_for_nlu(preds, labels, target_names):
-        intents_classification_report_result = classification_report(y_true=labels['intents'], y_pred=preds['intents'],
-                                                                     target_names=target_names['intents'])
-        enumerable_entities_classification_report_result = classification_report(y_true=labels['enumerable_entities'],
-                                                                                 y_pred=preds['enumerable_entities'],
-                                                                                 target_names=target_names[
-                                                                                     'enumerable_entities'])
-        non_enumerable_entities_classification_report_result = classification_report(
-            y_true=labels['non_enumerable_entities'], y_pred=preds['non_enumerable_entities'],
-            target_names=target_names['non_enumerable_entities'])
+        intents_classification_report_result = simple_classification_report(labels=labels['intents'],
+                                                                            preds=preds['intents'],
+                                                                            target_names=target_names['intents'])
+        enumerable_entities_classification_report_result = simple_classification_report(labels=labels['enumerable_entities'],
+                                                                                        preds=preds['enumerable_entities'],
+                                                                            target_names=target_names['enumerable_entities'])
+        non_enumerable_entities_classification_report_result = simple_classification_report(labels=labels['non_enumerable_entities'].flatten(),
+                                                                                            preds=preds['non_enumerable_entities'].flatten(),
+                                                                            target_names=target_names['non_enumerable_entities'])
 
         classification_report_for_nlu_result = {
                 'intents': intents_classification_report_result,

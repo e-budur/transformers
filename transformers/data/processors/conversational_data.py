@@ -200,7 +200,7 @@ class GoogleSimuatedDialogueProcessor(DataProcessor):
 
     def get_labels(self):
         """Gets the list of labels for this data set."""
-        intent_labels = self.taxonomy['intents']
+        intent_labels = self.get_intents_labels()
 
         enumerable_entity_labels = self.get_enumerable_entity_labels()
 

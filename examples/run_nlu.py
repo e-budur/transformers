@@ -22,7 +22,7 @@ import glob
 import logging
 import os
 import random
-
+import json
 import numpy as np
 import torch
 from torch.utils.data import (DataLoader, RandomSampler, SequentialSampler,
@@ -280,7 +280,7 @@ def evaluate(args, model, tokenizer, processor, prefix=""):
                 out_intent_labels_ids = np.append(out_intent_labels_ids, inputs['intent_labels'].detach().cpu().numpy(), axis=0)
                 out_enumerable_entity_labels_ids = np.append(out_enumerable_entity_labels_ids, inputs['enumerable_entity_labels'].detach().cpu().numpy(), axis=0)
                 out_non_enumerable_entity_labels_ids = np.append(out_non_enumerable_entity_labels_ids, inputs['non_enumerable_entity_labels'].detach().cpu().numpy(), axis=0)
-
+            break
         eval_loss = eval_loss / nb_eval_steps
         intent_preds = np.argmax(intent_preds, axis=1)
         enumerable_entity_preds = (enumerable_entity_preds>0.5)*1
@@ -305,18 +305,26 @@ def evaluate(args, model, tokenizer, processor, prefix=""):
         }
         result = compute_metrics(eval_task, preds, labels, target_names=target_names)
         results.update(result)
-
+        output_eval_json_filename = os.path.join(eval_output_dir, prefix, "eval_results.json")
+        with open(output_eval_json_filename, mode='w') as output_eval_json_file:
+            json.dump(result, output_eval_json_file, indent = 4)
         output_eval_file = os.path.join(eval_output_dir, prefix, "eval_results.txt")
         with open(output_eval_file, "w") as writer:
             logger.info("***** Eval results {} *****\n".format(prefix))
-            for header, sub_results in results:
-                header = "---- " + header +" ----\n"
+            for key in sorted(results):
+                header = "\n\t\t\t\t---- " + key + " ----"
                 logger.info(header)
                 writer.write(header)
+                for inner_key in results[key]:
+                    inner_header = "\n\t\t\t\t* " + inner_key + " *"
+                    logger.info(inner_header)
+                    writer.write(inner_header)
 
-                for key in sorted(sub_results.keys()):
-                    logger.info("  %s = %s", key, str(sub_results[key]))
-                    writer.write("%s = %s\n" % (key, str(sub_results[key])))
+                    value = results[key][inner_key]
+                    logger.info(str(value))
+                    writer.write(str(value))
+
+
     logger.info("Evaluation ended")
     return results
 
@@ -597,7 +605,6 @@ def main():
             model = model_class.from_pretrained(checkpoint)
             model.to(args.device)
             result = evaluate(args, model, tokenizer, processor, prefix=prefix)
-
             result = dict((k + '_{}'.format(global_step), v) for k, v in result.items())
             results.update(result)
 
