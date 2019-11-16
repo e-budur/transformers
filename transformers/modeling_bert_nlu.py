@@ -187,11 +187,12 @@ class BertNLUForJointUnderstanding(BertNLUForPreTraining):
 
         self.bert_nlu = BertNLUModel(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
-        self.classifier_intents = nn.Linear(config.hidden_size, self.config.num_intent_labels)
-        self.classifier_enumerable_entities = nn.Linear(config.hidden_size, self.config.num_enumerable_entity_labels)
+        self.classifier_intents = nn.Linear(config.hidden_size, config.num_intent_labels)
+        self.classifier_enumerable_entities = nn.Linear(config.hidden_size, config.num_enumerable_entity_labels)
         self.classifier_non_enumerable_entities = nn.Linear(config.hidden_size,
                                                             config.num_non_enumerable_entity_labels)
         self.init_weights()
+
 
     def forward(self, input_ids, attention_mask=None, token_type_ids=None,
                 position_ids=None, head_mask=None, intent_labels=None, enumerable_entity_labels=None, non_enumerable_entity_labels=None):
