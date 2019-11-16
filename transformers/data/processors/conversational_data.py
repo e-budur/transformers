@@ -161,7 +161,6 @@ class GoogleSimuatedDialogueProcessor(DataProcessor):
                 nlu_data_in_conversation = self.convert_to_nlu_data_in_conversation(conversation)
 
                 nlu_dataset.extend(nlu_data_in_conversation)
-        print(self.enumerable_entities)
         return nlu_dataset
 
     def _create_examples(self, data_dir, domains=['sim-M', 'sim-R'], set_type='train'):
@@ -287,6 +286,7 @@ def conversational_datasets_convert_examples_to_features(examples, tokenizer,
 
         if ex_index < 5:
             logger.info("*** Example ***")
+            logger.info("tokens: %s" % " ".join([str(x) for x in example.utterance_tokens]))
             logger.info("input_ids: %s" % " ".join([str(x) for x in input_ids]))
             logger.info("attention_mask: %s" % " ".join([str(x) for x in attention_mask]))
             logger.info("token_type_ids: %s" % " ".join([str(x) for x in token_type_ids]))
