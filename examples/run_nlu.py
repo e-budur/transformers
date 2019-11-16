@@ -280,7 +280,7 @@ def evaluate(args, model, tokenizer, processor, prefix=""):
                 out_intent_labels_ids = np.append(out_intent_labels_ids, inputs['intent_labels'].detach().cpu().numpy(), axis=0)
                 out_enumerable_entity_labels_ids = np.append(out_enumerable_entity_labels_ids, inputs['enumerable_entity_labels'].detach().cpu().numpy(), axis=0)
                 out_non_enumerable_entity_labels_ids = np.append(out_non_enumerable_entity_labels_ids, inputs['non_enumerable_entity_labels'].detach().cpu().numpy(), axis=0)
-            break
+
         eval_loss = eval_loss / nb_eval_steps
         intent_preds = np.argmax(intent_preds, axis=1)
         enumerable_entity_preds = (enumerable_entity_preds>0.5)*1
