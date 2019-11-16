@@ -250,7 +250,7 @@ def evaluate(args, model, tokenizer, processor, prefix=""):
 
         out_intent_labels_ids = None
         out_enumerable_entity_labels_ids = None
-        non_enumerable_entity_ids = None
+        out_non_enumerable_entity_labels_ids = None
 
         total_example_count = len(eval_dataset)
         total_num_steps = int(total_example_count / args.train_batch_size)
