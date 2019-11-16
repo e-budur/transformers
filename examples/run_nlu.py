@@ -160,7 +160,7 @@ def train(args, train_dataset, model, tokenizer):
             outputs = model(**inputs)
             loss = outputs[0]  # model outputs are always tuple in transformers (see doc)
 
-            example_iterator.set_description(desc % " Loss:" % loss)
+            example_iterator.set_description(desc + " Loss:" + str(loss))
             example_iterator.refresh()  # to show immediately the update
 
             if args.n_gpu > 1:
