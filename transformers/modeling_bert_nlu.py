@@ -28,14 +28,12 @@ class BertMultiLabelPooler(nn.Module):
 class BertNLUModel(BertPreTrainedModel):
 
     def __init__(self, config):
-        super(BertNLUModel, self).__init__(config)
+        super(BertModel, self).__init__(config)
         self.config = config
 
         self.embeddings = BertEmbeddings(config)
         self.encoder = BertEncoder(config)
         self.pooler = BertPooler(config)
-
-        self.multi_label_pooler = BertMultiLabelPooler(config)
 
         self.init_weights()
 
@@ -52,7 +50,6 @@ class BertNLUModel(BertPreTrainedModel):
         """
         for layer, heads in heads_to_prune.items():
             self.encoder.layer[layer].attention.prune_heads(heads)
-
 
     def forward(self, input_ids=None, attention_mask=None, token_type_ids=None, position_ids=None,
                 head_mask=None, inputs_embeds=None, encoder_hidden_states=None, encoder_attention_mask=None):
@@ -150,6 +147,7 @@ class BertNLUModel(BertPreTrainedModel):
 
         outputs = (sequence_output, pooled_output,) + encoder_outputs[1:]  # add hidden_states and attentions if they are here
         return outputs  # sequence_output, pooled_output, (hidden_states), (attentions)
+
 
 class BertOnlyMultiLabelHead(nn.Module):
     def __init__(self, config):
