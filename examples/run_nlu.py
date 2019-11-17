@@ -309,7 +309,7 @@ def evaluate(args, model, tokenizer, processor, prefix=""):
         enumerable_entity_preds = sigmoid(enumerable_entity_preds)
         enumerable_entity_preds = (enumerable_entity_preds>0.5)*1
 
-        non_enumerable_entity_preds = softmax(non_enumerable_entity_preds)
+        non_enumerable_entity_preds = softmax(non_enumerable_entity_preds, axis=2)
         non_enumerable_entity_preds = np.argmax(non_enumerable_entity_preds, axis=2)
 
         preds = {
