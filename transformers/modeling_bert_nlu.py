@@ -252,7 +252,7 @@ class BertNLUForPreTraining(BertPreTrainedModel):
 
 
 
-class BertNLUForJointUnderstanding(BertNLUForPreTraining):
+class BertNLUForJointUnderstanding(BertForPreTraining):
     r"""
         **labels**: (`optional`) ``torch.LongTensor`` of shape ``(batch_size,)``:
             Labels for computing the sequence classification/regression loss.
@@ -293,19 +293,18 @@ class BertNLUForJointUnderstanding(BertNLUForPreTraining):
         self.num_enumerable_entity_labels = config.num_enumerable_entity_labels
         self.num_non_enumerable_entity_labels = config.num_non_enumerable_entity_labels
 
-        self.bert_nlu = BertModel(config)
+        self.bert = BertModel(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
         self.classifier_intents = nn.Linear(config.hidden_size, config.num_intent_labels)
         self.classifier_enumerable_entities = nn.Linear(config.hidden_size, config.num_enumerable_entity_labels)
-        self.classifier_non_enumerable_entities = nn.Linear(config.hidden_size,
-                                                            config.num_non_enumerable_entity_labels)
-        self.init_weights()
+        self.classifier_non_enumerable_entities = nn.Linear(config.hidden_size, config.num_non_enumerable_entity_labels)
 
+        self.init_weights()
 
     def forward(self, input_ids, attention_mask=None, token_type_ids=None,
                 position_ids=None, head_mask=None, intent_labels=None, enumerable_entity_labels=None, non_enumerable_entity_labels=None):
 
-        outputs = self.bert_nlu(input_ids,
+        outputs = self.bert(input_ids,
                             attention_mask=attention_mask,
                             token_type_ids=token_type_ids,
                             position_ids=position_ids,
