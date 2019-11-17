@@ -25,6 +25,7 @@ import random
 import json
 import numpy as np
 import torch
+from scipy.special import softmax, expit as sigmoid
 from torch.utils.data import (DataLoader, RandomSampler, SequentialSampler,
                               TensorDataset)
 from torch.utils.data.distributed import DistributedSampler
