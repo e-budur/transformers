@@ -144,11 +144,13 @@ def train(args, train_dataset, model, tokenizer, processor):
 
         loss = None
         step = -1
+        eval_results={}
         for batch in example_iterator:
             step += 1
             if step %10 == 0:
                 if loss is not None:
-                    example_iterator.set_description("{}. Epoch: {}/{}. Loss:{} \n".format(desc, cur_epoch_index+1, int(args.num_train_epochs), str(loss.item())))
+                    eval_results_str = '.'.join('{}={}'.format(key, value) for key, value in eval_results.items())
+                    example_iterator.set_description("{}. Epoch: {}/{}. {}. Loss:{} \n".format(desc, cur_epoch_index+1, int(args.num_train_epochs), eval_results_str, str(loss.item())))
                     example_iterator.refresh()  # to show immediately the update
             model.train()
             batch = tuple(t.to(args.device) for t in batch)
@@ -189,8 +191,8 @@ def train(args, train_dataset, model, tokenizer, processor):
                 if args.local_rank in [-1, 0] and args.logging_steps > 0 and global_step % args.logging_steps == 0:
                     # Log metrics
                     if args.local_rank == -1 and args.evaluate_during_training:  # Only evaluate when single GPU otherwise metrics may not average well
-                        results = evaluate(args, model, tokenizer, processor, only_scalars=True)
-                        for key, value in results.items():
+                        eval_results = evaluate(args, model, tokenizer, processor, only_scalars=True)
+                        for key, value in eval_results.items():
                             tb_writer.add_scalar('eval_{}'.format(key), value, global_step)
                     tb_writer.add_scalar('lr', scheduler.get_lr()[0], global_step)
                     tb_writer.add_scalar('loss', (tr_loss - logging_loss)/args.logging_steps, global_step)
