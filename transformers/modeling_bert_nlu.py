@@ -236,8 +236,10 @@ class BertNLUForJointUnderstanding(BertForJointUnderstanding):
     def get_pooled_outputs(self, outputs):
         pooled_output_for_intent = outputs[1]
         pooled_output_for_intent = self.dropout(pooled_output_for_intent)
+
         pooled_output_for_enumerable_entities = outputs[2]
         pooled_output_for_enumerable_entities = self.dropout(pooled_output_for_enumerable_entities)
+
         return pooled_output_for_intent, pooled_output_for_enumerable_entities
 
     def get_hidden_states(self, outputs):
