@@ -189,7 +189,7 @@ def train(args, train_dataset, model, tokenizer, processor):
                 if args.local_rank in [-1, 0] and args.logging_steps > 0 and global_step % args.logging_steps == 0:
                     # Log metrics
                     if args.local_rank == -1 and args.evaluate_during_training:  # Only evaluate when single GPU otherwise metrics may not average well
-                        results = evaluate(args, model, tokenizer, processor)
+                        results = evaluate(args, model, tokenizer, processor, only_scalars=True)
                         for key, value in results.items():
                             tb_writer.add_scalar('eval_{}'.format(key), value, global_step)
                     tb_writer.add_scalar('lr', scheduler.get_lr()[0], global_step)
@@ -225,7 +225,7 @@ def train(args, train_dataset, model, tokenizer, processor):
     return global_step, tr_loss / global_step
 
 
-def evaluate(args, model, tokenizer, processor, prefix=""):
+def evaluate(args, model, tokenizer, processor, prefix="", only_scalars=False):
     logger.info("Evaluation starts")
     # Loop to handle MNLI double evaluation (matched, mis-matched)
     eval_task_names = ("mnli", "mnli-mm") if args.task_name == "mnli" else (args.task_name,)
@@ -325,9 +325,21 @@ def evaluate(args, model, tokenizer, processor, prefix=""):
         }
         result = compute_metrics(eval_task, preds, labels, target_names=target_names)
         results.update(result)
+
+
+    if only_scalars:
+        results_scalars = {}
+        results_scalars['intent_acc'] = results['acc']['intents']
+        results_scalars['enumerable_entities_acc'] = results['acc']['enumerable_entities']
+        results_scalars['non_enumerable_entities_acc'] = results['acc']['non_enumerable_entities']
+        results_scalars['intent_f1'] = results['f1']['intents']
+        results_scalars['enumerable_entities_f1'] = results['f1']['enumerable_entities']
+        results_scalars['non_enumerable_entities_f1'] = results['f1']['non_enumerable_entities']
+        results = results_scalars
+    else:
         output_eval_json_filename = os.path.join(eval_output_dir, prefix, "eval_results.json")
         with open(output_eval_json_filename, mode='w') as output_eval_json_file:
-            json.dump(result, output_eval_json_file, indent = 4)
+            json.dump(result, output_eval_json_file, indent=4)
         output_eval_file = os.path.join(eval_output_dir, prefix, "eval_results.txt")
         with open(output_eval_file, "w") as writer:
             logger.info("***** Eval results {} *****\n".format(prefix))
@@ -343,7 +355,6 @@ def evaluate(args, model, tokenizer, processor, prefix=""):
                     value = results[key][inner_key]
                     logger.info(str(value))
                     writer.write(str(value))
-
 
     logger.info("Evaluation ended")
     return results

@@ -60,6 +60,19 @@ if _has_sklearn:
 
         return acc_for_nlu_result
 
+    def f1_for_nlu(preds, labels):
+        intent_f1 = f1_score(labels['intents'], preds['intents'])
+        enumerable_entities_f1 = f1_score(labels['enumerable_entities'], preds['enumerable_entities'])
+        non_enumerable_entities_f1 = f1_score(labels['non_enumerable_entities'],preds['non_enumerable_entities'])
+
+        f1_for_nlu_result = {
+                'intents': intent_f1,
+                'enumerable_entities': enumerable_entities_f1,
+                'non_enumerable_entities': non_enumerable_entities_f1
+            }
+
+        return f1_for_nlu_result
+
 
     def simple_classification_report(preds, labels, target_names):
         simple_classification_report_result=classification_report(y_true=labels,
@@ -87,13 +100,15 @@ if _has_sklearn:
 
         return classification_report_for_nlu_result
 
-    def acc_and_classification_report_for_nlu(preds, labels, target_names):
+    def acc_and_f1_and_classification_report_for_nlu(preds, labels, target_names):
 
         acc_for_nlu_result =  acc_for_nlu(preds, labels)
+        f1_for_nlu_result = f1_for_nlu(preds, labels)
         classification_report_for_nlu_result = classification_report_for_nlu(preds, labels, target_names)
 
         acc_and_classification_report_for_nlu_result = {
             "acc": acc_for_nlu_result,
+            "f1": f1_for_nlu_result,
             "classification_report": classification_report_for_nlu_result
         }
 
@@ -112,7 +127,7 @@ if _has_sklearn:
     def nlu_compute_metrics(task_name, preds, labels, target_names):
 
         if task_name == "google-simulated-dialogue":
-            return acc_and_classification_report_for_nlu(preds, labels, target_names)
+            return acc_and_f1_and_classification_report_for_nlu(preds, labels, target_names)
         else:
             raise KeyError(task_name)
 
