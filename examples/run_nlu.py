@@ -307,8 +307,14 @@ def evaluate(args, model, tokenizer, processor, prefix="", only_scalars=False, v
                 out_non_enumerable_entity_labels_ids = np.append(out_non_enumerable_entity_labels_ids, inputs['non_enumerable_entity_labels'].detach().cpu().numpy(), axis=0)
 
         eval_loss = eval_loss / nb_eval_steps
+
+        intent_preds = softmax(intent_preds, axis=1)
         intent_preds = np.argmax(intent_preds, axis=1)
-        enumerable_entity_preds = (enumerable_entity_preds>0.5)*1
+
+        enumerable_entity_preds = sigmoid(enumerable_entity_preds)
+        enumerable_entity_preds = (enumerable_entity_preds > 0.5) * 1
+
+        non_enumerable_entity_preds = softmax(non_enumerable_entity_preds, axis=2)
         non_enumerable_entity_preds = np.argmax(non_enumerable_entity_preds, axis=2)
 
         preds = {
