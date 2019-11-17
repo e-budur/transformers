@@ -113,8 +113,19 @@ class BertForJointUnderstanding(BertForPreTraining):
         hidden_states = outputs[2:]
         return hidden_states
 
-    def forward(self, input_ids, attention_mask=None, token_type_ids=None,
-                position_ids=None, head_mask=None, intent_labels=None, enumerable_entity_labels=None, non_enumerable_entity_labels=None):
+    def forward(self, input_ids,
+                attention_mask=None,
+                token_type_ids=None,
+                position_ids=None,
+                head_mask=None,
+                intent_labels=None,
+                enumerable_entity_labels=None,
+                non_enumerable_entity_labels=None,
+                loss_weights={
+                    'intent': 1.0,
+                    'enumerable_entities': 1.0,
+                    'non_enumerable_entities':1.0
+                }):
 
         outputs = self.bert(input_ids,
                             attention_mask=attention_mask,
@@ -139,7 +150,7 @@ class BertForJointUnderstanding(BertForPreTraining):
             intent_loss = loss_fct(intent_logits.view(-1, self.num_intent_labels), intent_labels.view(-1))
             enumerable_entity_loss = loss_multi_label(enumerable_entity_logits.view(-1, self.num_enumerable_entity_labels), enumerable_entity_labels)
             non_enumerable_entity_loss = loss_fct(non_enumerable_entity_logits.view(-1, self.num_non_enumerable_entity_labels), non_enumerable_entity_labels.view(-1))
-            loss = intent_loss + enumerable_entity_loss + non_enumerable_entity_loss
+            loss = intent_loss * loss_weights['intent'] + enumerable_entity_loss * loss_weights['enumerable_entities'] + non_enumerable_entity_loss * loss_weights['non_enumerable_entities']
             outputs = (loss,) + outputs
 
         return outputs  # (loss), (intent_logits, enumerable_entity_logits), (hidden_states), (attentions)

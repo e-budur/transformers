@@ -137,6 +137,11 @@ def train(args, train_dataset, model, tokenizer, processor):
     train_iterator = trange(int(args.num_train_epochs), desc="Epoch", disable=args.local_rank not in [-1, 0])
     set_seed(args)  # Added here for reproductibility (even between python 2 and 3)
     eval_results = {}
+    dynamic_loss_weights= {
+        'intent': 1.0,
+        'enumerable_entities': 1.0,
+        'non_enumerable_entities':1.0
+    }
     for cur_epoch_index in train_iterator:
         total_example_count = len(train_dataset)
         total_num_steps = int(total_example_count / args.train_batch_size)
@@ -159,7 +164,8 @@ def train(args, train_dataset, model, tokenizer, processor):
                       'attention_mask': batch[1],
                       'intent_labels':  batch[3],
                       'enumerable_entity_labels': batch[4],
-                      'non_enumerable_entity_labels': batch[5]
+                      'non_enumerable_entity_labels': batch[5],
+                      'loss_weights': dynamic_loss_weights
                       }
             if args.model_type != 'distilbert':
                 inputs['token_type_ids'] = batch[2] if args.model_type in ['bert', 'bert-nlu', 'xlnet'] else None  # XLM, DistilBERT and RoBERTa don't use segment_ids
@@ -193,6 +199,12 @@ def train(args, train_dataset, model, tokenizer, processor):
                     # Log metrics
                     if args.local_rank == -1 and args.evaluate_during_training:  # Only evaluate when single GPU otherwise metrics may not average well
                         eval_results = evaluate(args, model, tokenizer, processor, only_scalars=True, verbose=False)
+
+                        dynamic_loss_weights = {
+                            'intent': 1.0-eval_results['intent_macro_f1'],
+                            'enumerable_entities': 1.0-eval_results['enumerable_entities_macro_f1'],
+                            'non_enumerable_entities': 1.0-eval_results['non_enumerable_entities_macro_f1']
+                        }
                         for key, value in eval_results.items():
                             tb_writer.add_scalar('eval_{}'.format(key), value, global_step)
                     tb_writer.add_scalar('lr', scheduler.get_lr()[0], global_step)
