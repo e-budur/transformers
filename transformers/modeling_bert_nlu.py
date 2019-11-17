@@ -187,7 +187,7 @@ class BertNLUForJointUnderstanding(BertNLUForPreTraining):
         self.num_enumerable_entity_labels = config.num_enumerable_entity_labels
         self.num_non_enumerable_entity_labels = config.num_non_enumerable_entity_labels
 
-        self.bert_nlu = BertNLUModel(config)
+        self.bert_nlu = BertModel(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
         self.classifier_intents = nn.Linear(config.hidden_size, config.num_intent_labels)
         self.classifier_enumerable_entities = nn.Linear(config.hidden_size, config.num_enumerable_entity_labels)
