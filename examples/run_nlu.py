@@ -303,7 +303,7 @@ def evaluate(args, model, tokenizer, processor, prefix=""):
 
         eval_loss = eval_loss / nb_eval_steps
         intent_preds = np.argmax(intent_preds, axis=1)
-        enumerable_entity_preds = (enumerable_entity_preds>0.5)*1
+        enumerable_entity_preds = (enumerable_entity_preds>0.1)*1
         non_enumerable_entity_preds = np.argmax(non_enumerable_entity_preds, axis=2)
 
         preds = {
