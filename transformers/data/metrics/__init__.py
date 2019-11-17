@@ -63,7 +63,7 @@ if _has_sklearn:
     def f1_for_nlu(preds, labels, average):
         intent_f1 = f1_score(labels['intents'], preds['intents'], average=average)
         enumerable_entities_f1 = f1_score(labels['enumerable_entities'], preds['enumerable_entities'], average=average)
-        non_enumerable_entities_f1 = f1_score(labels['non_enumerable_entities'],preds['non_enumerable_entities'], average=average)
+        non_enumerable_entities_f1 = f1_score(labels['non_enumerable_entities'].flatten(),preds['non_enumerable_entities'].flatten(), average=average)
 
         f1_for_nlu_result = {
                 'intents': intent_f1,
