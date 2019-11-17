@@ -185,7 +185,7 @@ class BertNLUForJointUnderstanding(BertNLUForPreTraining):
         self.num_enumerable_entity_labels = config.num_enumerable_entity_labels
         self.num_non_enumerable_entity_labels = config.num_non_enumerable_entity_labels
 
-        self.bert_nlu = BertNLUModel(config)
+        self.bert = BertModel(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
         self.classifier_intents = nn.Linear(config.hidden_size, config.num_intent_labels)
         self.classifier_enumerable_entities = nn.Linear(config.hidden_size, config.num_enumerable_entity_labels)
@@ -197,7 +197,7 @@ class BertNLUForJointUnderstanding(BertNLUForPreTraining):
     def forward(self, input_ids, attention_mask=None, token_type_ids=None,
                 position_ids=None, head_mask=None, intent_labels=None, enumerable_entity_labels=None, non_enumerable_entity_labels=None):
 
-        outputs = self.bert_nlu(input_ids,
+        outputs = self.bert(input_ids,
                             attention_mask=attention_mask,
                             token_type_ids=token_type_ids,
                             position_ids=position_ids,
@@ -206,32 +206,26 @@ class BertNLUForJointUnderstanding(BertNLUForPreTraining):
         sequence_output = outputs[0]
         sequence_output = self.dropout(sequence_output)
 
-        pooled_output_for_intent = outputs[1]
-        pooled_output_for_enumerable_entities = outputs[1] #outputs[2] substituted the mlb output for cls output for debugging purpose
+        pooled_output_for_cls = outputs[1]
 
-        pooled_output_for_intent = self.dropout(pooled_output_for_intent)
-        intent_logits = self.classifier_intents(pooled_output_for_intent)
+        pooled_output_for_cls = self.dropout(pooled_output_for_cls)
+        intent_logits = self.classifier_intents(pooled_output_for_cls)
 
-        pooled_output_for_enumerable_entities = self.dropout(pooled_output_for_enumerable_entities)
-        enumerable_entity_logits = self.classifier_enumerable_entities(pooled_output_for_enumerable_entities)
+        enumerable_entity_logits = self.classifier_enumerable_entities(pooled_output_for_cls)
         non_enumerable_entity_logits = self.classifier_non_enumerable_entities(sequence_output)
 
-        outputs = (intent_logits, enumerable_entity_logits, non_enumerable_entity_logits,) + outputs[3:]  # add hidden states and attention if they are here
+        outputs = (intent_logits, enumerable_entity_logits, non_enumerable_entity_logits,) + outputs[2:]  # add hidden states and attention if they are here
 
         if intent_labels is not None and enumerable_entity_labels is not None:
             loss_fct = CrossEntropyLoss()
             loss_multi_label = MultiLabelSoftMarginLoss()
             intent_loss = loss_fct(intent_logits.view(-1, self.num_intent_labels), intent_labels.view(-1))
             enumerable_entity_loss = loss_multi_label(enumerable_entity_logits.view(-1, self.num_enumerable_entity_labels), enumerable_entity_labels)
-            non_enumerable_entity_loss = loss_fct(
-                non_enumerable_entity_logits.view(-1, self.num_non_enumerable_entity_labels),
-                non_enumerable_entity_labels.view(-1))
-
+            non_enumerable_entity_loss = loss_fct(non_enumerable_entity_logits.view(-1, self.num_non_enumerable_entity_labels), non_enumerable_entity_labels.view(-1))
             loss = intent_loss + enumerable_entity_loss + non_enumerable_entity_loss
             outputs = (loss,) + outputs
 
         return outputs  # (loss), (intent_logits, enumerable_entity_logits), (hidden_states), (attentions)
-
 
 class BertForJointUnderstanding(BertForPreTraining):
     def __init__(self, config):
