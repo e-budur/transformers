@@ -330,3 +330,6 @@ class BertForJointUnderstanding(BertForPreTraining):
 class BertNLUForJointUnderstanding(BertForJointUnderstanding):
     def __init__(self, config):
         super(BertNLUForJointUnderstanding, self).__init__(config)
+
+    def get_bert_model(self, config):
+        return BertNLUModel(config)
