@@ -207,7 +207,7 @@ class BertNLUForJointUnderstanding(BertNLUForPreTraining):
         sequence_output = self.dropout(sequence_output)
 
         pooled_output_for_intent = outputs[1]
-        pooled_output_for_enumerable_entities = outputs[2]
+        pooled_output_for_enumerable_entities = outputs[1] #outputs[2] substituted the mlb output for cls output for debugging purpose
 
         pooled_output_for_intent = self.dropout(pooled_output_for_intent)
         intent_logits = self.classifier_intents(pooled_output_for_intent)
