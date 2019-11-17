@@ -173,10 +173,10 @@ class BertForJointUnderstanding(BertForPreTraining):
         sequence_output = self.dropout(sequence_output)
         return sequence_output
 
-    def get_pooled_output_for_cls(self, outputs):
+    def get_pooled_outputs(self, outputs):
         pooled_output_for_cls = outputs[1]
         pooled_output_for_cls = self.dropout(pooled_output_for_cls)
-        return pooled_output_for_cls
+        return pooled_output_for_cls, pooled_output_for_cls
 
     def get_intent_logits(self, pooled_output_for_cls):
         intent_logits = self.classifier_intents(pooled_output_for_cls)
@@ -205,10 +205,10 @@ class BertForJointUnderstanding(BertForPreTraining):
 
         sequence_output = self.get_sequence_output(outputs)
 
-        pooled_output_for_cls = self.get_pooled_output_for_cls(outputs)
+        pooled_output_for_intent, pooled_output_for_enumerable_entities  = self.get_pooled_outputs(outputs)
 
-        intent_logits = self.get_intent_logits(pooled_output_for_cls)
-        enumerable_entity_logits = self.get_enumerable_entity_logits(pooled_output_for_cls)
+        intent_logits = self.get_intent_logits(pooled_output_for_intent)
+        enumerable_entity_logits = self.get_enumerable_entity_logits(pooled_output_for_enumerable_entities)
         non_enumerable_entity_logits = self.get_non_enumerable_entity_logits(sequence_output)
         hidden_states = self.get_hidden_states(outputs)
 
