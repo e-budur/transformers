@@ -31,14 +31,21 @@ class BertNLUModel(BertModel):
         self.multi_label_pooler = BertMultiLabelPooler(config)
         self.init_weights()
 
-    def forward(self, input_ids, attention_mask=None, token_type_ids=None, position_ids=None, head_mask=None, inputs_embeds=None):
-        outputs = super(BertNLUModel, self).forward(input_ids, attention_mask, token_type_ids, position_ids, head_mask)
+
+    def forward(self, input_ids=None, attention_mask=None, token_type_ids=None, position_ids=None,
+                head_mask=None, inputs_embeds=None, encoder_hidden_states=None, encoder_attention_mask=None):
+
+        outputs = super(BertNLUModel, self).forward(input_ids, attention_mask, token_type_ids, position_ids,
+                head_mask, inputs_embeds, encoder_hidden_states, encoder_attention_mask)
+
         sequence_output, multi_class_pooled_output = outputs[0], outputs[1]
         hidden_states_and_attentions = outputs[2:]
 
         multi_label_pooled_output = self.multi_label_pooler(sequence_output)
         outputs = (sequence_output, multi_class_pooled_output, multi_label_pooled_output) + hidden_states_and_attentions
         return outputs  # sequence_output, multi_class_pooled_output, multi_label_pooled_output, (hidden_states), (attentions)
+
+
 
 
 class BertOnlyMultiLabelHead(nn.Module):
