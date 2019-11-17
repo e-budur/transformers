@@ -79,7 +79,7 @@ def set_seed(args):
         torch.cuda.manual_seed_all(args.seed)
 
 
-def train(args, train_dataset, model, tokenizer):
+def train(args, train_dataset, model, tokenizer, processor):
     """ Train the model """
     logger.info("Training starts")
     if args.local_rank in [-1, 0]:
@@ -584,7 +584,7 @@ def main():
     # Training
     if args.do_train:
         train_dataset = load_and_cache_examples(args, args.task_name, tokenizer, evaluate=False)
-        global_step, tr_loss = train(args, train_dataset, model, tokenizer)
+        global_step, tr_loss = train(args, train_dataset, model, tokenizer, processor)
         logger.info(" global_step = %s, average loss = %s", global_step, tr_loss)
 
 
