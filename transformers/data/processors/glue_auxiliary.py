@@ -141,7 +141,7 @@ class XnliNMTProcessor(MnliNMTProcessor):
                 continue
             if data_item['gold_label'] == '-': #skip data_items with missing gold labels
                 continue
-            if data_item['lang'] != self.lang:
+            if data_item['language'] != self.lang:
                 continue
             guid = "%s-%s" % (set_type, data_item['pairID'])
             text_a = data_item['translate-sentence1']
