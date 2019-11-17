@@ -332,9 +332,9 @@ def evaluate(args, model, tokenizer, processor, prefix="", only_scalars=False):
         results_scalars['intent_acc'] = results['acc']['intents']
         results_scalars['enumerable_entities_acc'] = results['acc']['enumerable_entities']
         results_scalars['non_enumerable_entities_acc'] = results['acc']['non_enumerable_entities']
-        results_scalars['intent_f1'] = results['f1']['intents']
-        results_scalars['enumerable_entities_f1'] = results['f1']['enumerable_entities']
-        results_scalars['non_enumerable_entities_f1'] = results['f1']['non_enumerable_entities']
+        results_scalars['intent_macro_f1'] = results['f1']['macro']['intents']
+        results_scalars['enumerable_entities_macro_f1'] = results['f1']['macro']['enumerable_entities']
+        results_scalars['non_enumerable_entities_macro_f1'] = results['f1']['macro']['non_enumerable_entities']
         results = results_scalars
     else:
         output_eval_json_filename = os.path.join(eval_output_dir, prefix, "eval_results.json")
