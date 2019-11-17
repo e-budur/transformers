@@ -337,8 +337,14 @@ def evaluate(args, model, tokenizer, processor, prefix="", only_scalars=False, v
         results_scalars['enumerable_entities_acc'] = results['acc']['enumerable_entities']
         results_scalars['non_enumerable_entities_acc'] = results['acc']['non_enumerable_entities']
         results_scalars['intent_macro_f1'] = results['f1']['macro']['intents']
+        results_scalars['intent_micro_f1'] = results['f1']['micro']['intents']
+        results_scalars['intent_weighted_f1'] = results['f1']['weighted']['intents']
         results_scalars['enumerable_entities_macro_f1'] = results['f1']['macro']['enumerable_entities']
+        results_scalars['enumerable_entities_micro_f1'] = results['f1']['micro']['enumerable_entities']
+        results_scalars['enumerable_entities_weighted_f1'] = results['f1']['weighted']['enumerable_entities']
         results_scalars['non_enumerable_entities_macro_f1'] = results['f1']['macro']['non_enumerable_entities']
+        results_scalars['non_enumerable_entities_micro_f1'] = results['f1']['micro']['non_enumerable_entities']
+        results_scalars['non_enumerable_entities_weighted_f1'] = results['f1']['weighted']['non_enumerable_entities']
         results = results_scalars
         return results
 
