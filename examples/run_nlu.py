@@ -135,6 +135,7 @@ def train(args, train_dataset, model, tokenizer, processor):
     model.zero_grad()
     train_iterator = trange(int(args.num_train_epochs), desc="Epoch", disable=args.local_rank not in [-1, 0])
     set_seed(args)  # Added here for reproductibility (even between python 2 and 3)
+    eval_results = {}
     for cur_epoch_index in train_iterator:
         total_example_count = len(train_dataset)
         total_num_steps = int(total_example_count / args.train_batch_size)
@@ -144,7 +145,6 @@ def train(args, train_dataset, model, tokenizer, processor):
 
         loss = None
         step = -1
-        eval_results={}
         for batch in example_iterator:
             step += 1
             if step %10 == 0:
