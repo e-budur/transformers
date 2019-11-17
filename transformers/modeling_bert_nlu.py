@@ -28,7 +28,7 @@ class BertMultiLabelPooler(nn.Module):
 class BertNLUModel(BertPreTrainedModel):
 
     def __init__(self, config):
-        super(BertModel, self).__init__(config)
+        super(BertNLUModel, self).__init__(config)
         self.config = config
 
         self.embeddings = BertEmbeddings(config)
