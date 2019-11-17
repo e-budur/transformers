@@ -25,10 +25,14 @@ from .file_utils import (TRANSFORMERS_CACHE, PYTORCH_TRANSFORMERS_CACHE, PYTORCH
 from .data import (is_sklearn_available,
                    InputExample, InputFeatures, DataProcessor,
                    glue_output_modes, glue_convert_examples_to_features,
-                   glue_processors, glue_tasks_num_labels)
+                   glue_processors, glue_tasks_num_labels,
+                   conversational_datasets_output_modes,
+                   conversational_datasets_processors,
+                   conversational_datasets_convert_examples_to_features)
 
 if is_sklearn_available():
     from .data import glue_compute_metrics
+    from .data import nlu_compute_metrics
 
 # Tokenizers
 from .tokenization_utils import (PreTrainedTokenizer)
@@ -89,10 +93,12 @@ if is_torch_available():
                             XLM_PRETRAINED_MODEL_ARCHIVE_MAP)
     from .modeling_roberta import (RobertaForMaskedLM, RobertaModel,
                                 RobertaForSequenceClassification, RobertaForMultipleChoice,
+                                RobertaForTokenClassification,
                                 ROBERTA_PRETRAINED_MODEL_ARCHIVE_MAP)
     from .modeling_distilbert import (DistilBertForMaskedLM, DistilBertModel,
                                 DistilBertForSequenceClassification, DistilBertForQuestionAnswering,
                                 DISTILBERT_PRETRAINED_MODEL_ARCHIVE_MAP)
+    from .modeling_encoder_decoder import PreTrainedEncoderDecoder, Model2Model
 
     # Optimization
     from .optimization import (AdamW, ConstantLRSchedule, WarmupConstantSchedule, WarmupCosineSchedule,
@@ -139,6 +145,7 @@ if is_tf_available():
     from .modeling_tf_roberta import (TFRobertaPreTrainedModel, TFRobertaMainLayer,
                                       TFRobertaModel, TFRobertaForMaskedLM,
                                       TFRobertaForSequenceClassification,
+                                      TFRobertaForTokenClassification,
                                       TF_ROBERTA_PRETRAINED_MODEL_ARCHIVE_MAP)
 
     from .modeling_tf_distilbert import (TFDistilBertPreTrainedModel, TFDistilBertMainLayer,
