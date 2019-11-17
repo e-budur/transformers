@@ -145,7 +145,7 @@ class BertNLUTokenizer(BertTokenizer):
 
         utterance_token_ids = get_input_ids(utterance_tokens)
 
-        return self.prepare_for_model_nlu(utterance_token_ids,
+        return self.prepare_for_model(utterance_token_ids,
                                       max_length=max_length,
                                       add_special_tokens=add_special_tokens,
                                       stride=stride,
@@ -153,7 +153,7 @@ class BertNLUTokenizer(BertTokenizer):
                                       return_tensors=return_tensors)
 
 
-    def prepare_for_model_nlu(self, ids, max_length=None, add_special_tokens=True, stride=0,
+    def prepare_for_model(self, ids, max_length=None, add_special_tokens=True, stride=0,
                           truncation_strategy='longest_first', return_tensors=None):
 
         len_ids = len(ids)
@@ -194,3 +194,4 @@ class BertNLUTokenizer(BertTokenizer):
             encoded_inputs["special_tokens_mask"] = encoded_inputs["special_tokens_mask"][:max_length]
 
         return encoded_inputs
+
