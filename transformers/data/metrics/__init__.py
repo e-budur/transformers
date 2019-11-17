@@ -60,10 +60,10 @@ if _has_sklearn:
 
         return acc_for_nlu_result
 
-    def f1_for_nlu(preds, labels):
-        intent_f1 = f1_score(labels['intents'], preds['intents'])
-        enumerable_entities_f1 = f1_score(labels['enumerable_entities'], preds['enumerable_entities'])
-        non_enumerable_entities_f1 = f1_score(labels['non_enumerable_entities'],preds['non_enumerable_entities'])
+    def f1_for_nlu(preds, labels, average):
+        intent_f1 = f1_score(labels['intents'], preds['intents'], average=average)
+        enumerable_entities_f1 = f1_score(labels['enumerable_entities'], preds['enumerable_entities'], average=average)
+        non_enumerable_entities_f1 = f1_score(labels['non_enumerable_entities'],preds['non_enumerable_entities'], average=average)
 
         f1_for_nlu_result = {
                 'intents': intent_f1,
@@ -103,12 +103,18 @@ if _has_sklearn:
     def acc_and_f1_and_classification_report_for_nlu(preds, labels, target_names):
 
         acc_for_nlu_result =  acc_for_nlu(preds, labels)
-        f1_for_nlu_result = f1_for_nlu(preds, labels)
+        macro_f1_for_nlu_result = f1_for_nlu(preds, labels, average='macro')
+        micro_f1_for_nlu_result = f1_for_nlu(preds, labels, average='micro')
+        weighted_f1_for_nlu_result = f1_for_nlu(preds, labels, average='weighted')
         classification_report_for_nlu_result = classification_report_for_nlu(preds, labels, target_names)
 
         acc_and_classification_report_for_nlu_result = {
             "acc": acc_for_nlu_result,
-            "f1": f1_for_nlu_result,
+            "f1": {
+                'macro':macro_f1_for_nlu_result,
+                'micro': micro_f1_for_nlu_result,
+                'weighted': weighted_f1_for_nlu_result
+            },
             "classification_report": classification_report_for_nlu_result
         }
 
