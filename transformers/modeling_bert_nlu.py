@@ -174,9 +174,9 @@ class BertForJointUnderstanding(BertForPreTraining):
         return sequence_output
 
     def get_pooled_outputs(self, outputs):
-        pooled_output_for_cls = outputs[1]
-        pooled_output_for_cls = self.dropout(pooled_output_for_cls)
-        return pooled_output_for_cls, pooled_output_for_cls
+        common_pooled_outputs = outputs[1]
+        common_pooled_outputs = self.dropout(common_pooled_outputs)
+        return common_pooled_outputs, common_pooled_outputs
 
     def get_intent_logits(self, pooled_output_for_cls):
         intent_logits = self.classifier_intents(pooled_output_for_cls)
@@ -232,6 +232,13 @@ class BertNLUForJointUnderstanding(BertForJointUnderstanding):
 
     def get_bert_model(self, config):
         return BertNLUModel(config)
+
+    def get_pooled_outputs(self, outputs):
+        pooled_output_for_intent = outputs[1]
+        pooled_output_for_intent = self.dropout(pooled_output_for_intent)
+        pooled_output_for_enumerable_entities = outputs[2]
+        pooled_output_for_enumerable_entities = self.dropout(pooled_output_for_enumerable_entities)
+        return pooled_output_for_intent, pooled_output_for_enumerable_entities
 
     def get_hidden_states(self, outputs):
         hidden_states = outputs[3:]
