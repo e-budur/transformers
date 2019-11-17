@@ -310,11 +310,8 @@ def evaluate(args, model, tokenizer, processor, prefix="", only_scalars=False, v
         intent_preds = softmax(intent_preds, axis=1)
         intent_preds = np.argmax(intent_preds, axis=1)
 
-        print('enumerable_entity_preds before sigmoid', enumerable_entity_preds)
         enumerable_entity_preds = sigmoid(enumerable_entity_preds)
-        print('enumerable_entity_preds after sigmoid', enumerable_entity_preds)
         enumerable_entity_preds = (enumerable_entity_preds>0.5)*1
-        print('enumerable_entity_preds after binarize', enumerable_entity_preds)
 
         non_enumerable_entity_preds = softmax(non_enumerable_entity_preds, axis=2)
         non_enumerable_entity_preds = np.argmax(non_enumerable_entity_preds, axis=2)
@@ -347,6 +344,8 @@ def evaluate(args, model, tokenizer, processor, prefix="", only_scalars=False, v
         results_scalars['non_enumerable_entities_acc'] = results['acc']['non_enumerable_entities']
         results_scalars['intent_macro_f1'] = results['f1']['macro']['intents']
         results_scalars['enumerable_entities_macro_f1'] = results['f1']['macro']['enumerable_entities']
+        results_scalars['enumerable_entities_micro_f1'] = results['f1']['micro']['enumerable_entities']
+        results_scalars['enumerable_entities_weighted_f1'] = results['f1']['weighted']['enumerable_entities']
         results_scalars['non_enumerable_entities_macro_f1'] = results['f1']['macro']['non_enumerable_entities']
         results = results_scalars
         return results
