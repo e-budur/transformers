@@ -22,9 +22,13 @@ import logging
 import run_glue
 
 import transformers.data.processors.glue_auxiliary
+from transformers.configuration_bert_nlu import BertNLUConfig
+from transformers.modeling_bert_nlu import BertNLUForSequenceClassification
+from transformers.tokenization_bert_nlu import BertNLUTokenizer
 
 logger = logging.getLogger(__name__)
 
 
 if __name__ == "__main__":
+	run_glue.MODEL_CLASSES['bert-nlu'] = (BertNLUConfig, BertNLUForSequenceClassification, BertNLUTokenizer)
     run_glue.main()
