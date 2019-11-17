@@ -135,10 +135,10 @@ def train(args, train_dataset, model, tokenizer):
     model.zero_grad()
     train_iterator = trange(int(args.num_train_epochs), desc="Epoch", disable=args.local_rank not in [-1, 0])
     set_seed(args)  # Added here for reproductibility (even between python 2 and 3)
-    for _ in train_iterator:
+    for cur_epoch_index in train_iterator:
         total_example_count = len(train_dataset)
         total_num_steps = int(total_example_count / args.train_batch_size)
-        desc = "Iterating over training examples."
+        desc = "Iterating over training examples"
         example_iterator = tqdm(train_dataloader, desc=desc, maxinterval=60 * 60,
                                 miniters=int(total_num_steps / 10.0))
 
@@ -148,7 +148,7 @@ def train(args, train_dataset, model, tokenizer):
             step += 1
             if step %10 == 0:
                 if loss is not None:
-                    example_iterator.set_description(desc + " Loss:" + str(loss.item())+'\n')
+                    example_iterator.set_description("{}. Epoch: {}/{}. Loss:{} \n".format(desc, cur_epoch_index, int(args.num_train_epochs), str(loss.item())))
                     example_iterator.refresh()  # to show immediately the update
             model.train()
             batch = tuple(t.to(args.device) for t in batch)
