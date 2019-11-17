@@ -80,7 +80,7 @@ def set_seed(args):
         torch.cuda.manual_seed_all(args.seed)
 
 
-def train(args, train_dataset, model, tokenizer):
+def train(args, train_dataset, model, tokenizer, processor):
     """ Train the model """
     logger.info("Training starts")
     if args.local_rank in [-1, 0]:
@@ -136,10 +136,11 @@ def train(args, train_dataset, model, tokenizer):
     model.zero_grad()
     train_iterator = trange(int(args.num_train_epochs), desc="Epoch", disable=args.local_rank not in [-1, 0])
     set_seed(args)  # Added here for reproductibility (even between python 2 and 3)
-    for _ in train_iterator:
+    eval_results = {}
+    for cur_epoch_index in train_iterator:
         total_example_count = len(train_dataset)
         total_num_steps = int(total_example_count / args.train_batch_size)
-        desc = "Iterating over training examples."
+        desc = "Iterating over training examples"
         example_iterator = tqdm(train_dataloader, desc=desc, maxinterval=60 * 60,
                                 miniters=int(total_num_steps / 10.0))
 
@@ -149,7 +150,8 @@ def train(args, train_dataset, model, tokenizer):
             step += 1
             if step %10 == 0:
                 if loss is not None:
-                    example_iterator.set_description(desc + " Loss:" + str(loss.item())+'\n')
+                    eval_results_str = '\n'.join('{}={}'.format(key, value) for key, value in eval_results.items())
+                    example_iterator.set_description("{}. Epoch: {}/{}. Loss:{}. \n {}.\n".format(desc, cur_epoch_index+1, int(args.num_train_epochs), str(loss.item()), eval_results_str))
                     example_iterator.refresh()  # to show immediately the update
             model.train()
             batch = tuple(t.to(args.device) for t in batch)
@@ -190,8 +192,8 @@ def train(args, train_dataset, model, tokenizer):
                 if args.local_rank in [-1, 0] and args.logging_steps > 0 and global_step % args.logging_steps == 0:
                     # Log metrics
                     if args.local_rank == -1 and args.evaluate_during_training:  # Only evaluate when single GPU otherwise metrics may not average well
-                        results = evaluate(args, model, tokenizer)
-                        for key, value in results.items():
+                        eval_results = evaluate(args, model, tokenizer, processor, only_scalars=True, verbose=False)
+                        for key, value in eval_results.items():
                             tb_writer.add_scalar('eval_{}'.format(key), value, global_step)
                     tb_writer.add_scalar('lr', scheduler.get_lr()[0], global_step)
                     tb_writer.add_scalar('loss', (tr_loss - logging_loss)/args.logging_steps, global_step)
@@ -226,8 +228,9 @@ def train(args, train_dataset, model, tokenizer):
     return global_step, tr_loss / global_step
 
 
-def evaluate(args, model, tokenizer, processor, prefix=""):
-    logger.info("Evaluation starts")
+def evaluate(args, model, tokenizer, processor, prefix="", only_scalars=False, verbose=True):
+    if verbose:
+        logger.info("Evaluation starts")
     # Loop to handle MNLI double evaluation (matched, mis-matched)
     eval_task_names = ("mnli", "mnli-mm") if args.task_name == "mnli" else (args.task_name,)
     eval_outputs_dirs = (args.output_dir, args.output_dir + '-MM') if args.task_name == "mnli" else (args.output_dir,)
@@ -246,9 +249,10 @@ def evaluate(args, model, tokenizer, processor, prefix=""):
         eval_dataloader = DataLoader(eval_dataset, sampler=eval_sampler, batch_size=args.eval_batch_size)
 
         # Eval!
-        logger.info("***** Running evaluation {} *****".format(prefix))
-        logger.info("  Num examples = %d", len(eval_dataset))
-        logger.info("  Batch size = %d", args.eval_batch_size)
+        if verbose:
+            logger.info("***** Running evaluation {} *****".format(prefix))
+            logger.info("  Num examples = %d", len(eval_dataset))
+            logger.info("  Batch size = %d", args.eval_batch_size)
         eval_loss = 0.0
         nb_eval_steps = 0
 
@@ -263,7 +267,7 @@ def evaluate(args, model, tokenizer, processor, prefix=""):
         total_example_count = len(eval_dataset)
         total_num_steps = int(total_example_count / args.eval_batch_size)
         example_iterator = tqdm(eval_dataloader, desc="Iterating over evaluation examples", maxinterval=60 * 60,
-                                miniters=int(total_num_steps / 10.0))
+                                miniters=int(total_num_steps / 10.0), disable=not verbose)
 
         step = -1
         for batch in example_iterator:
@@ -334,9 +338,23 @@ def evaluate(args, model, tokenizer, processor, prefix=""):
         }
         result = compute_metrics(eval_task, preds, labels, target_names=target_names)
         results.update(result)
+
+
+    if only_scalars:
+        results_scalars = {}
+        results_scalars['intent_acc'] = results['acc']['intents']
+        results_scalars['enumerable_entities_acc'] = results['acc']['enumerable_entities']
+        results_scalars['non_enumerable_entities_acc'] = results['acc']['non_enumerable_entities']
+        results_scalars['intent_macro_f1'] = results['f1']['macro']['intents']
+        results_scalars['enumerable_entities_macro_f1'] = results['f1']['macro']['enumerable_entities']
+        results_scalars['non_enumerable_entities_macro_f1'] = results['f1']['macro']['non_enumerable_entities']
+        results = results_scalars
+        return results
+
+    if verbose:
         output_eval_json_filename = os.path.join(eval_output_dir, prefix, "eval_results.json")
         with open(output_eval_json_filename, mode='w') as output_eval_json_file:
-            json.dump(result, output_eval_json_file, indent = 4)
+            json.dump(result, output_eval_json_file, indent=4)
         output_eval_file = os.path.join(eval_output_dir, prefix, "eval_results.txt")
         with open(output_eval_file, "w") as writer:
             logger.info("***** Eval results {} *****\n".format(prefix))
@@ -352,9 +370,7 @@ def evaluate(args, model, tokenizer, processor, prefix=""):
                     value = results[key][inner_key]
                     logger.info(str(value))
                     writer.write(str(value))
-
-
-    logger.info("Evaluation ended")
+        logger.info("Evaluation ended")
     return results
 
 
@@ -593,7 +609,7 @@ def main():
     # Training
     if args.do_train:
         train_dataset = load_and_cache_examples(args, args.task_name, tokenizer, evaluate=False)
-        global_step, tr_loss = train(args, train_dataset, model, tokenizer)
+        global_step, tr_loss = train(args, train_dataset, model, tokenizer, processor)
         logger.info(" global_step = %s, average loss = %s", global_step, tr_loss)
 
 
