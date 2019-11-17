@@ -148,7 +148,7 @@ def train(args, train_dataset, model, tokenizer):
             step += 1
             if step %10 == 0:
                 if loss is not None:
-                    example_iterator.set_description("{}. Epoch: {}/{}. Loss:{} \n".format(desc, cur_epoch_index, int(args.num_train_epochs), str(loss.item())))
+                    example_iterator.set_description("{}. Epoch: {}/{}. Loss:{} \n".format(desc, cur_epoch_index+1, int(args.num_train_epochs), str(loss.item())))
                     example_iterator.refresh()  # to show immediately the update
             model.train()
             batch = tuple(t.to(args.device) for t in batch)
