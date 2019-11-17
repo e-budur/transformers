@@ -266,7 +266,7 @@ def evaluate(args, model, tokenizer, processor, prefix="", only_scalars=False, v
         total_example_count = len(eval_dataset)
         total_num_steps = int(total_example_count / args.eval_batch_size)
         example_iterator = tqdm(eval_dataloader, desc="Iterating over evaluation examples", maxinterval=60 * 60,
-                                miniters=int(total_num_steps / 10.0))
+                                miniters=int(total_num_steps / 10.0), disable=not verbose)
 
         step = -1
         for batch in example_iterator:
