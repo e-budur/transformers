@@ -97,7 +97,7 @@ class BertNLUTokenizer(BertTokenizer):
             return len(cls + mlb +token_ids_0 + sep) * [0]
         return len(cls + mlb + token_ids_0 + sep) * [0] + len(token_ids_1 + sep) * [1]
 
-    def get_special_tokens_mask(self, token_ids_0, token_ids_1=None, already_has_special_tokens=True):
+    def get_special_tokens_mask(self, token_ids_0, token_ids_1=None, already_has_special_tokens=False):
         """
         Retrieves sequence ids from a token list that has no special tokens added. This method is called when adding
         special tokens using the tokenizer ``prepare_for_model`` or ``encode_plus`` methods.
