@@ -270,6 +270,9 @@ def train(args, train_dataset, model, tokenizer, featurizer, config):
 			for batch in example_iterator:
 				step += 1
 				inputs, outputs = featurizer.featurize(batch, tokenizer, args, config)
+
+				print('inputs', inputs[0])
+				print('outputs', outputs[5:])
 				inputs = inputs.to(args.device)
 				outputs = [output.to(args.device) if output is not None else None for output in outputs]
 				model.train()
