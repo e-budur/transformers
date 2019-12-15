@@ -19,10 +19,10 @@ class BertNLUFeaturizer(BertFeaturizer):
 
 	def _get_bag_of_tokens_labels(self, inputs, tokenizer):
 		indices = [list(set(features)) for features in inputs.tolist()]
-		bag_of_tokens_label = np.zeros((inputs.shape[0], tokenizer.vocab_size))
+		bag_of_tokens_label = np.full((inputs.shape[0], tokenizer.vocab_size), -1.0)
 		for (row, row_indices) in zip(bag_of_tokens_label, indices):
 			row[row_indices] = 1
-
+		bag_of_tokens_label[:,tokenizer.all_special_ids]=-1.0
 		bag_of_tokens_label = torch.FloatTensor(bag_of_tokens_label)
 		return bag_of_tokens_label
 
