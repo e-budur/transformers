@@ -148,7 +148,7 @@ class BertNLUForPreTraining(BertPreTrainedModel):
             masked_lm_loss = loss_fct(language_model_prediction_scores.view(-1, self.config.vocab_size), masked_lm_labels.view(-1))
             next_sentence_loss = loss_fct(seq_relationship_score.view(-1, 2), next_sentence_label.view(-1))
             bag_of_tokens_loss = loss_multi_label(multi_label_prediction_scores.view(-1, self.vocab_size), bag_of_tokens_label.view(-1, self.vocab_size))
-            total_loss = masked_lm_loss + next_sentence_loss + bag_of_tokens_loss
+            total_loss = masked_lm_loss + next_sentence_loss #+ bag_of_tokens_loss (removed ml head for debugging)
             outputs = (total_loss,) + outputs
 
         return outputs  # (loss), prediction_scores, seq_relationship_score, multi_label_prediction_scores, (hidden_states), (attentions)
