@@ -92,6 +92,7 @@ class TextDataset(Dataset):
 			if os.path.exists(cached_file_path):
 				logger.info("File already processed and cached %s", input_file)
 				continue
+
 			logger.info("Processing file %s", input_file)
 
 			with open(input_file, 'r', encoding='utf-8') as fin:

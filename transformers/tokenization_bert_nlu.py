@@ -65,8 +65,15 @@ class BertNLUTokenizer(BertTokenizer):
                  mask_token, tokenize_chinese_chars, **kwargs)
 
         self.multi_label_token = multi_label_token
+        self.multi_label_token_id_value = 104
         self.max_len_single_sentence = self.max_len - 4  # take into account special tokens
         self.max_len_sentences_pair = self.max_len - 5  # take into account special tokens
+
+        special_tokens_dict = {'additional_special_tokens': [self.multi_label_token]}
+
+        self.add_special_tokens(special_tokens_dict)
+        logger.info("The mapped id for the special token %s is %s.", self.multi_label_token, self.convert_tokens_to_ids([self.multi_label_token])[0])
+
 
     @property
     def multi_label_token_id(self):
