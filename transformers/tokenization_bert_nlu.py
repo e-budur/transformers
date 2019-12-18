@@ -65,7 +65,6 @@ class BertNLUTokenizer(BertTokenizer):
                  mask_token, tokenize_chinese_chars, **kwargs)
 
         self.multi_label_token = multi_label_token
-        self.multi_label_token_id_value = 104
         self.max_len_single_sentence = self.max_len - 4  # take into account special tokens
         self.max_len_sentences_pair = self.max_len - 5  # take into account special tokens
 
