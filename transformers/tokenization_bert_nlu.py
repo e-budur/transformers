@@ -65,8 +65,8 @@ class BertNLUTokenizer(BertTokenizer):
                  mask_token, tokenize_chinese_chars, **kwargs)
 
         self.multi_label_token = multi_label_token
-        self.max_len_single_sentence = self.max_len - 3  # take into account special tokens
-        self.max_len_sentences_pair = self.max_len - 4  # take into account special tokens
+        self.max_len_single_sentence = self.max_len - 4  # take into account special tokens
+        self.max_len_sentences_pair = self.max_len - 5  # take into account special tokens
 
     @property
     def multi_label_token_id(self):
@@ -78,24 +78,24 @@ class BertNLUTokenizer(BertTokenizer):
         Build model inputs from a sequence or a pair of sequence for sequence classification tasks
         by concatenating and adding special tokens.
         A BERT sequence has the following format:
-            single sequence: [CLS] X [MLB] X [SEP]
-            pair of sequences: [CLS] [MLB] A [SEP] B [SEP]
+            single sequence: [CLS] X [SEP] X [MLB] X [SEP]
+            pair of sequences: [CLS] A [SEP] B [SEP] [MLB] [SEP]
         """
 
         if token_ids_1 is None:
-            return [self.cls_token_id] + [self.multi_label_token_id] + token_ids_0 + [self.sep_token_id]
+            return [self.cls_token_id] + token_ids_0 + [self.sep_token_id] + [self.multi_label_token_id]
         cls = [self.cls_token_id]
         mlb = [self.multi_label_token_id]
         sep = [self.sep_token_id]
-        return cls + mlb + token_ids_0 + sep + token_ids_1 + sep
+        return cls + token_ids_0 + sep + token_ids_1 + sep + mlb
 
     def create_token_type_ids_from_sequences(self, token_ids_0, token_ids_1=None):
         sep = [self.sep_token_id]
         cls = [self.cls_token_id]
         mlb = [self.multi_label_token_id]
         if token_ids_1 is None:
-            return len(cls + mlb +token_ids_0 + sep) * [0]
-        return len(cls + mlb + token_ids_0 + sep) * [0] + len(token_ids_1 + sep) * [1]
+            return len(cls + token_ids_0 + sep + mlb + sep) * [0]
+        return len(cls + token_ids_0 + sep) * [0] + len(token_ids_1 + sep + mlb + sep) * [1]
 
     def get_special_tokens_mask(self, token_ids_0, token_ids_1=None, already_has_special_tokens=True):
         """
@@ -120,8 +120,8 @@ class BertNLUTokenizer(BertTokenizer):
             return list(map(lambda x: 1 if x in [self.sep_token_id, self.cls_token_id, self.multi_label_token_id] else 0, token_ids_0))
 
         if token_ids_1 is not None:
-            return [1, 1] + ([0] * len(token_ids_0)) + [1] + ([0] * len(token_ids_1)) + [1]
-        return [1, 1] + ([0] * len(token_ids_0)) + [1]
+            return [1] + ([0] * len(token_ids_0)) + [1] + ([0] * len(token_ids_1)) + [1, 1]
+        return [1] + ([0] * len(token_ids_0)) + [1, 1]
 
 
 
