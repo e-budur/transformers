@@ -71,7 +71,6 @@ class BertNLUTokenizer(BertTokenizer):
         special_tokens_dict = {'additional_special_tokens': [self.multi_label_token]}
 
         num_added_tokens = self.add_special_tokens(special_tokens_dict)
-        self.vocab_size += num_added_tokens
         logger.info("The mapped id for the special token %s is %s.", self.multi_label_token, self.convert_tokens_to_ids([self.multi_label_token])[0])
 
 
