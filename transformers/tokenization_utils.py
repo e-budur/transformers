@@ -482,7 +482,7 @@ class PreTrainedTokenizer(object):
 
     def __len__(self):
         """ Size of the full vocabulary with the added tokens """
-        return self.vocab_size + len(self.added_tokens_encoder)
+        return self.vocab_size + 2 #(increased len for debugging purposes)
 
 
     def add_tokens(self, new_tokens):
