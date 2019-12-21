@@ -96,6 +96,7 @@ class TextDataset(Dataset):
 			logger.info("Processing file %s", input_file)
 
 			with open(input_file, 'r', encoding='utf-8') as fin:
+
 				prev_sent = None
 				for cur_line in fin:
 					if len(cur_line.strip())==0:
@@ -462,9 +463,11 @@ def main():
 
 	config_class, model_class, tokenizer_class, featurizer_class = MODEL_CLASSES[args.model_type]
 	config = config_class.from_pretrained(args.config_name if args.config_name else args.model_name_or_path)
-	config.vocab_size += 2 #(added for debugging purposes)
+
 	tokenizer = tokenizer_class.from_pretrained(args.tokenizer_name if args.tokenizer_name else args.model_name_or_path,
 												do_lower_case=args.do_lower_case)
+
+	config.vocab_size = tokenizer.vocab_size
 	featurizer = featurizer_class()
 	if args.block_size <= 0:
 		args.block_size = tokenizer.max_len_single_sentence  # Our input block size will be the max possible for the model

@@ -168,7 +168,7 @@ class BertTokenizer(PreTrainedTokenizer):
 
     @property
     def vocab_size(self):
-        return len(self.vocab) + 2 #(increased vocab_size for debugging purposes)
+        return max(self.vocab.values()) + 1
 
     def _tokenize(self, text):
         split_tokens = []

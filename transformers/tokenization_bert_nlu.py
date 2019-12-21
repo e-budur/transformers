@@ -39,7 +39,7 @@ class BertNLUTokenizer(BertTokenizer):
 
     def __init__(self, vocab_file, do_lower_case=True, do_basic_tokenize=True, never_split=None,
                  unk_token="[UNK]", sep_token="[SEP]", pad_token="[PAD]", cls_token="[CLS]",
-                 mask_token="[MASK]", tokenize_chinese_chars=True, multi_label_token="[MLB]", **kwargs):
+                 mask_token="[MASK]", tokenize_chinese_chars=True, mlb_token="[MLB]", mlb_token_id=104, **kwargs):
         """Constructs a BertTokenizer.
 
         Args:
@@ -57,27 +57,29 @@ class BertNLUTokenizer(BertTokenizer):
                 This should likely be deactivated for Japanese:
                 see: https://github.com/huggingface/pytorch-pretrained-BERT/issues/328
         """
-        if 'additional_special_tokens' not in kwargs:
-            kwargs['additional_special_tokens'] = [multi_label_token]
 
         super(BertNLUTokenizer, self).__init__(vocab_file, do_lower_case, do_basic_tokenize, never_split,
                  unk_token, sep_token, pad_token, cls_token,
                  mask_token, tokenize_chinese_chars, **kwargs)
 
-        self.multi_label_token = multi_label_token
+        self._mlb_token = mlb_token
+        if self._mlb_token is not None:
+            self.SPECIAL_TOKENS_ATTRIBUTES.append("mlb_token")
+            self.vocab[self._mlb_token] = mlb_token_id   # applied variable shadowing on purpose
+            logger.info("The mapped id for the special token %s is %s.", self._mlb_token, self.mlb_token_id)
+        else:
+            logger.warning("mlb_token is not given as an input")
+
         self.max_len_single_sentence = self.max_len - 4  # take into account special tokens
         self.max_len_sentences_pair = self.max_len - 5  # take into account special tokens
 
-        special_tokens_dict = {'additional_special_tokens': [self.multi_label_token]}
 
-        num_added_tokens = self.add_special_tokens(special_tokens_dict)
-        logger.info("The mapped id for the special token %s is %s.", self.multi_label_token, self.convert_tokens_to_ids([self.multi_label_token])[0])
 
 
     @property
-    def multi_label_token_id(self):
+    def mlb_token_id(self):
         """ Id of the multi label token in the vocabulary. E.g. to extract a summary of an bag of tokens leveraging self-attention along the full depth of the model. Log an error if used while not having been set. """
-        return self.convert_tokens_to_ids(self.multi_label_token)
+        return self.convert_tokens_to_ids(self._mlb_token)
 
     def build_inputs_with_special_tokens(self, token_ids_0, token_ids_1=None):
         """
@@ -89,16 +91,16 @@ class BertNLUTokenizer(BertTokenizer):
         """
 
         if token_ids_1 is None:
-            return [self.cls_token_id] + token_ids_0 + [self.sep_token_id] + [self.multi_label_token_id]
+            return [self.cls_token_id] + token_ids_0 + [self.sep_token_id] + [self.mlb_token_id]
         cls = [self.cls_token_id]
-        mlb = [self.multi_label_token_id]
+        mlb = [self.mlb_token_id]
         sep = [self.sep_token_id]
         return cls + token_ids_0 + sep + token_ids_1 + sep + mlb
 
     def create_token_type_ids_from_sequences(self, token_ids_0, token_ids_1=None):
         sep = [self.sep_token_id]
         cls = [self.cls_token_id]
-        mlb = [self.multi_label_token_id]
+        mlb = [self.mlb_token_id]
         if token_ids_1 is None:
             return len(cls + token_ids_0 + sep + mlb + sep) * [0]
         return len(cls + token_ids_0 + sep) * [0] + len(token_ids_1 + sep + mlb + sep) * [1]
@@ -123,7 +125,7 @@ class BertNLUTokenizer(BertTokenizer):
             if token_ids_1 is not None:
                 raise ValueError("You should not supply a second sequence if the provided sequence of "
                                  "ids is already formated with special tokens for the model.")
-            return list(map(lambda x: 1 if x in [self.sep_token_id, self.cls_token_id, self.multi_label_token_id] else 0, token_ids_0))
+            return list(map(lambda x: 1 if x in [self.sep_token_id, self.cls_token_id, self.mlb_token_id] else 0, token_ids_0))
 
         if token_ids_1 is not None:
             return [1] + ([0] * len(token_ids_0)) + [1] + ([0] * len(token_ids_1)) + [1, 1]
