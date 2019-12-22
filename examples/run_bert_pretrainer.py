@@ -76,7 +76,7 @@ class TextDataset(Dataset):
 	def __init__(self, tokenizer, input_data_dir='train', cache_folder_suffix='cached_features'):
 
 		self.total_num_examples = 81198328
-		self.recalculate_total_num_examples = False
+		self.recalculate_total_num_examples = True
 		cached_features_dir = input_data_dir + cache_folder_suffix
 
 		if not os.path.exists(cached_features_dir):
