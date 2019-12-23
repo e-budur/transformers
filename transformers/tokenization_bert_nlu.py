@@ -67,11 +67,12 @@ class BertNLUTokenizer(BertTokenizer):
             self.SPECIAL_TOKENS_ATTRIBUTES.append("mlb_token")
             self.vocab[self._mlb_token] = mlb_token_id   # applied variable shadowing on purpose
             logger.info("The mapped id for the special token %s is %s.", self._mlb_token, self.mlb_token_id)
+            self.vocab["[unused100]"] = -1 # removed unused 100 token to make room for mlb token since they have the same id
         else:
             logger.warning("mlb_token is not given as an input")
 
-        self.max_len_single_sentence = self.max_len - 4  # take into account special tokens
-        self.max_len_sentences_pair = self.max_len - 5  # take into account special tokens
+        self.max_len_single_sentence = self.max_len - 3  # take into account special tokens
+        self.max_len_sentences_pair = self.max_len - 4  # take into account special tokens
 
 
 
