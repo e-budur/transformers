@@ -64,11 +64,12 @@ class GoogleSimuatedDialogueProcessor(DataProcessor):
 
     def __init__(self):
         self.taxonomy = {
-
             'enumerable_entities': {
                 'category': ['french', 'indian', 'taiwanese', 'italian', 'mexican', 'greek', 'mediterranean',
                               'chinese', 'thai', 'vietnamese'],
-                'date': [  'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday','today', 'tonight', 'tomorrow', 'next monday'],
+                'date': [  'monday', 'tuesday', 'wednesday', 'thursday',
+                           'friday', 'saturday', 'sunday',    'today',
+                           'tonight', 'tomorrow', 'next monday'],
                 'meal': ['brunch', 'lunch', 'breakfast', 'dinner'],
                 'price_range': ['expensive', 'inexpensive', 'moderately priced'],
                 'rating': ['michelin rated', 'zagat rated', 'good']
