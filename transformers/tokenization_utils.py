@@ -32,9 +32,9 @@ if is_torch_available():
 
 logger = logging.getLogger(__name__)
 
-SPECIAL_TOKENS_MAP_FILE = 'special_tokens_map.json'
-ADDED_TOKENS_FILE = 'added_tokens.json'
-TOKENIZER_CONFIG_FILE = 'tokenizer_config.json'
+SPECIAL_TOKENS_MAP_FILE = 'configs/special_tokens_map.json'
+ADDED_TOKENS_FILE = 'configs/added_tokens.json'
+TOKENIZER_CONFIG_FILE = 'configs/tokenizer_config.json'
 
 class PreTrainedTokenizer(object):
     """ Base class for all tokenizers.
@@ -204,6 +204,7 @@ class PreTrainedTokenizer(object):
         """ Ids of all the additional special tokens in the vocabulary (list of integers). Log an error if used while not having been set. """
         return self.convert_tokens_to_ids(self.additional_special_tokens)
 
+
     def __init__(self, max_len=None, **kwargs):
         self._bos_token = None
         self._eos_token = None
@@ -297,6 +298,19 @@ class PreTrainedTokenizer(object):
                 vocab_files[file_id] = map_list[pretrained_model_name_or_path]
             if cls.pretrained_init_configuration and pretrained_model_name_or_path in cls.pretrained_init_configuration:
                 init_configuration = cls.pretrained_init_configuration[pretrained_model_name_or_path]
+
+            # Look for the additional tokens files
+            additional_files_names = {'added_tokens_file': ADDED_TOKENS_FILE,
+                                      'special_tokens_map_file': SPECIAL_TOKENS_MAP_FILE,
+                                      'tokenizer_config_file': TOKENIZER_CONFIG_FILE,
+                                      }
+
+            for file_id, full_file_name in additional_files_names.items():
+                if not os.path.exists(full_file_name):
+                    logger.info("Didn't find file {}. We won't load it.".format(full_file_name))
+                    full_file_name = None
+                vocab_files[file_id] = full_file_name
+
         else:
             # Get the vocabulary from local files
             logger.info(
