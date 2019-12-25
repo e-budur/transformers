@@ -75,6 +75,11 @@ class BertNLUTokenizer(BertTokenizer):
 
 
 
+    @property
+    def mlb_token(self):
+        """ the multi label token in the vocabulary. """
+        return self._mlb_token
+
 
     @property
     def mlb_token_id(self):
