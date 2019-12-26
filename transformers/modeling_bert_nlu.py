@@ -5,14 +5,14 @@ from transformers import *
 from transformers import modeling_bert as original_bert
 import torch
 from torch import nn
-from torch.nn import CrossEntropyLoss, MSELoss, MultiLabelSoftMarginLoss
-
+from torch.nn import CrossEntropyLoss, MSELoss, MultiLabelSoftMarginLoss, BCEWithLogitsLoss
+from transformers.loss_nlu import BCEWithLogitsLossNLU
 
 class BertMultiLabelPooler(nn.Module):
     def __init__(self, config):
         super(BertMultiLabelPooler, self).__init__()
         self.dense = nn.Linear(config.hidden_size, config.hidden_size)
-        self.activation = nn.Sigmoid()
+        self.activation = nn.Tanh()
 
     def forward(self, hidden_states):
         # We "pool" the model by simply taking the hidden state corresponding
@@ -144,7 +144,7 @@ class BertNLUForPreTraining(BertPreTrainedModel):
 
         if masked_lm_labels is not None and next_sentence_label is not None and bag_of_tokens_label is not None:
             loss_fct = CrossEntropyLoss(ignore_index=-1)
-            loss_multi_label = MultiLabelSoftMarginLoss()
+            loss_multi_label = BCEWithLogitsLossNLU(ignore_negative_targets=True)
             masked_lm_loss = loss_fct(language_model_prediction_scores.view(-1, self.config.vocab_size), masked_lm_labels.view(-1))
             next_sentence_loss = loss_fct(seq_relationship_score.view(-1, 2), next_sentence_label.view(-1))
             bag_of_tokens_loss = loss_multi_label(multi_label_prediction_scores.view(-1, self.vocab_size), bag_of_tokens_label.view(-1, self.vocab_size))
