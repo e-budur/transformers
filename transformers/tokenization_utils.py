@@ -32,9 +32,9 @@ if is_torch_available():
 
 logger = logging.getLogger(__name__)
 
-SPECIAL_TOKENS_MAP_FILE = 'configs/special_tokens_map.json'
-ADDED_TOKENS_FILE = 'configs/added_tokens.json'
-TOKENIZER_CONFIG_FILE = 'configs/tokenizer_config.json'
+SPECIAL_TOKENS_MAP_FILE = 'special_tokens_map.json'
+ADDED_TOKENS_FILE = 'added_tokens.json'
+TOKENIZER_CONFIG_FILE = 'tokenizer_config.json'
 
 class PreTrainedTokenizer(object):
     """ Base class for all tokenizers.
@@ -44,7 +44,7 @@ class PreTrainedTokenizer(object):
 
     Class attributes (overridden by derived classes):
 
-        - ``vocab_files_names``: a python ``dict`` with, as keys, the ``__init__`` keyword name of each vocabulary file required by the model, and as associated values, the filename for saving the associated file (string).
+        - ``vocab_files_names``: auu python ``dict`` with, as keys, the ``__init__`` keyword name of each vocabulary file required by the model, and as associated values, the filename for saving the associated file (string).
         - ``pretrained_vocab_files_map``: a python ``dict of dict`` the high-level keys being the ``__init__`` keyword name of each vocabulary file required by the model, the low-level being the `short-cut-names` (string) of the pretrained models with, as associated values, the `url` (string) to the associated pretrained vocabulary file.
         - ``max_model_input_sizes``: a python ``dict`` with, as keys, the `short-cut-names` (string) of the pretrained models, and as associated values, the maximum length of the sequence inputs of this model, or None if the model has no maximum input size.
         - ``pretrained_init_configuration``: a python ``dict`` with, as keys, the `short-cut-names` (string) of the pretrained models, and as associated values, a dictionnary of specific arguments to pass to the ``__init__``method of the tokenizer class for this pretrained model when loading the tokenizer with the ``from_pretrained()`` method.
@@ -453,9 +453,6 @@ class PreTrainedTokenizer(object):
             logger.error("Saving directory ({}) should be a directory".format(save_directory))
             return
 
-        special_tokens_map_file = os.path.join(save_directory, SPECIAL_TOKENS_MAP_FILE)
-        added_tokens_file = os.path.join(save_directory, ADDED_TOKENS_FILE)
-        tokenizer_config_file = os.path.join(save_directory, TOKENIZER_CONFIG_FILE)
         self.create_dir_if_not_exist(tokenizer_config_file)
         self.create_dir_if_not_exist(special_tokens_map_file)
         self.create_dir_if_not_exist(added_tokens_file)
