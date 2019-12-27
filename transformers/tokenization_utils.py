@@ -453,10 +453,6 @@ class PreTrainedTokenizer(object):
             logger.error("Saving directory ({}) should be a directory".format(save_directory))
             return
 
-        self.create_dir_if_not_exist(tokenizer_config_file)
-        self.create_dir_if_not_exist(special_tokens_map_file)
-        self.create_dir_if_not_exist(added_tokens_file)
-
         tokenizer_config = copy.deepcopy(self.init_kwargs)
         tokenizer_config['init_inputs'] = copy.deepcopy(self.init_inputs)
         for file_id in self.vocab_files_names.keys():
@@ -478,14 +474,6 @@ class PreTrainedTokenizer(object):
         vocab_files = self.save_vocabulary(save_directory)
 
         return vocab_files + (special_tokens_map_file, added_tokens_file)
-
-	def create_dir_if_not_exist(self, file_path):
-		directory = os.path.dirname(file_path)
-
-		try:
-			os.stat(directory)
-		except:
-			os.mkdir(directory)
 
     def save_vocabulary(self, save_directory):
         """ Save the tokenizer vocabulary to a directory. This method does *NOT* save added tokens
