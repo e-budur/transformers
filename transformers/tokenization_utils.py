@@ -456,6 +456,9 @@ class PreTrainedTokenizer(object):
         special_tokens_map_file = os.path.join(save_directory, SPECIAL_TOKENS_MAP_FILE)
         added_tokens_file = os.path.join(save_directory, ADDED_TOKENS_FILE)
         tokenizer_config_file = os.path.join(save_directory, TOKENIZER_CONFIG_FILE)
+        self.create_dir_if_not_exist(tokenizer_config_file)
+        self.create_dir_if_not_exist(special_tokens_map_file)
+        self.create_dir_if_not_exist(added_tokens_file)
 
         tokenizer_config = copy.deepcopy(self.init_kwargs)
         tokenizer_config['init_inputs'] = copy.deepcopy(self.init_inputs)
@@ -479,6 +482,13 @@ class PreTrainedTokenizer(object):
 
         return vocab_files + (special_tokens_map_file, added_tokens_file)
 
+	def create_dir_if_not_exist(self, file_path):
+		directory = os.path.dirname(file_path)
+
+		try:
+			os.stat(directory)
+		except:
+			os.mkdir(directory)
 
     def save_vocabulary(self, save_directory):
         """ Save the tokenizer vocabulary to a directory. This method does *NOT* save added tokens
