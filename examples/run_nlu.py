@@ -84,7 +84,7 @@ def train(args, train_dataset, model, tokenizer, processor):
     """ Train the model """
     logger.info("Training starts")
     if args.local_rank in [-1, 0]:
-        tb_writer = SummaryWriter()
+        tb_writer = SummaryWriter(log_dir=args.tensorboard_log_dir)
 
     args.train_batch_size = args.per_gpu_train_batch_size * max(1, args.n_gpu)
     train_sampler = RandomSampler(train_dataset) if args.local_rank == -1 else DistributedSampler(train_dataset)
@@ -530,6 +530,7 @@ def main():
                         help="For distributed training: local_rank")
     parser.add_argument('--server_ip', type=str, default='', help="For distant debugging.")
     parser.add_argument('--server_port', type=str, default='', help="For distant debugging.")
+    parser.add_argument('--tensorboard_log_dir', type=str, default=None, help="For logging directory of tensorboard.")
     args = parser.parse_args()
 
     if os.path.exists(args.output_dir) and os.listdir(args.output_dir) and args.do_train and not args.overwrite_output_dir:
