@@ -66,6 +66,7 @@ class BertNLUTokenizer(BertTokenizer):
         if self._mlb_token is not None:
             self.SPECIAL_TOKENS_ATTRIBUTES.append("mlb_token")
             self.vocab[self._mlb_token] = mlb_token_id   # applied variable shadowing on purpose
+            self.ids_to_tokens[mlb_token_id] = self._mlb_token   # applied variable shadowing on purpose
             logger.info("The mapped id for the special token %s is %s.", self._mlb_token, self.mlb_token_id)
         else:
             logger.warning("mlb_token is not given as an input")
