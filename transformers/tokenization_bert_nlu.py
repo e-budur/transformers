@@ -70,8 +70,8 @@ class BertNLUTokenizer(BertTokenizer):
         else:
             logger.warning("mlb_token is not given as an input")
 
-        self.max_len_single_sentence = self.max_len - 4  # take into account special tokens
-        self.max_len_sentences_pair = self.max_len - 5  # take into account special tokens
+        self.max_len_single_sentence = self.max_len - 3  # take into account special tokens
+        self.max_len_sentences_pair = self.max_len - 4  # take into account special tokens
 
 
 
@@ -91,19 +91,19 @@ class BertNLUTokenizer(BertTokenizer):
         """
 
         if token_ids_1 is None:
-            return [self.cls_token_id] + token_ids_0 + [self.sep_token_id] + [self.mlb_token_id]
+            return [self.cls_token_id] + [self.mlb_token_id] + token_ids_0 + [self.sep_token_id]
         cls = [self.cls_token_id]
         mlb = [self.mlb_token_id]
         sep = [self.sep_token_id]
-        return cls + token_ids_0 + sep + token_ids_1 + sep + mlb
+        return cls + mlb + token_ids_0 + sep + token_ids_1 + sep
 
     def create_token_type_ids_from_sequences(self, token_ids_0, token_ids_1=None):
         sep = [self.sep_token_id]
         cls = [self.cls_token_id]
         mlb = [self.mlb_token_id]
         if token_ids_1 is None:
-            return len(cls + token_ids_0 + sep + mlb) * [0]
-        return len(cls + token_ids_0 + sep) * [0] + len(token_ids_1 + sep + mlb) * [1]
+            return len(cls + mlb + token_ids_0 + sep) * [0]
+        return len(cls + mlb + token_ids_0 + sep) * [0] + len(token_ids_1 + sep) * [1]
 
     def get_special_tokens_mask(self, token_ids_0, token_ids_1=None, already_has_special_tokens=False):
         """
@@ -128,8 +128,8 @@ class BertNLUTokenizer(BertTokenizer):
             return list(map(lambda x: 1 if x in [self.sep_token_id, self.cls_token_id, self.mlb_token_id] else 0, token_ids_0))
 
         if token_ids_1 is not None:
-            return [1] + ([0] * len(token_ids_0)) + [1] + ([0] * len(token_ids_1)) + [1, 1]
-        return [1] + ([0] * len(token_ids_0)) + [1, 1]
+            return [1] + [1] + ([0] * len(token_ids_0)) + [1] + ([0] * len(token_ids_1)) + [1]
+        return [1] + [1] + ([0] * len(token_ids_0)) + [1]
 
 
 

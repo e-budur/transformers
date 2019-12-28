@@ -169,12 +169,14 @@ def train(args, train_dataset, model, tokenizer):
                 model.zero_grad()
                 global_step += 1
 
-                if args.local_rank in [-1, 0] and args.logging_steps > 0 and global_step % args.logging_steps == 0:
+                if args.local_rank in [-1, 0] and args.evaluation_steps > 0 and global_step % args.evaluation_steps == 0:
                     # Log metrics
                     if args.local_rank == -1 and args.evaluate_during_training:  # Only evaluate when single GPU otherwise metrics may not average well
                         results = evaluate(args, model, tokenizer)
                         for key, value in results.items():
                             tb_writer.add_scalar('eval_{}'.format(key), value, global_step)
+
+                if args.local_rank in [-1, 0] and args.logging_steps > 0 and global_step % args.logging_steps == 0:
                     tb_writer.add_scalar('lr', scheduler.get_lr()[0], global_step)
                     tb_writer.add_scalar('loss', (tr_loss - logging_loss)/args.logging_steps, global_step)
                     logging_loss = tr_loss
@@ -379,6 +381,8 @@ def main():
                         help="Linear warmup over warmup_steps.")
 
     parser.add_argument('--logging_steps', type=int, default=50,
+                        help="Log every X updates steps.")
+    parser.add_argument('--evaluation_steps', type=int, default=0,
                         help="Log every X updates steps.")
     parser.add_argument('--save_steps', type=int, default=50,
                         help="Save checkpoint every X updates steps.")
