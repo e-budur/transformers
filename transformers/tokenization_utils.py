@@ -44,7 +44,7 @@ class PreTrainedTokenizer(object):
 
     Class attributes (overridden by derived classes):
 
-        - ``vocab_files_names``: auu python ``dict`` with, as keys, the ``__init__`` keyword name of each vocabulary file required by the model, and as associated values, the filename for saving the associated file (string).
+        - ``vocab_files_names``: a python ``dict`` with, as keys, the ``__init__`` keyword name of each vocabulary file required by the model, and as associated values, the filename for saving the associated file (string).
         - ``pretrained_vocab_files_map``: a python ``dict of dict`` the high-level keys being the ``__init__`` keyword name of each vocabulary file required by the model, the low-level being the `short-cut-names` (string) of the pretrained models with, as associated values, the `url` (string) to the associated pretrained vocabulary file.
         - ``max_model_input_sizes``: a python ``dict`` with, as keys, the `short-cut-names` (string) of the pretrained models, and as associated values, the maximum length of the sequence inputs of this model, or None if the model has no maximum input size.
         - ``pretrained_init_configuration``: a python ``dict`` with, as keys, the `short-cut-names` (string) of the pretrained models, and as associated values, a dictionnary of specific arguments to pass to the ``__init__``method of the tokenizer class for this pretrained model when loading the tokenizer with the ``from_pretrained()`` method.
@@ -453,6 +453,10 @@ class PreTrainedTokenizer(object):
             logger.error("Saving directory ({}) should be a directory".format(save_directory))
             return
 
+        special_tokens_map_file = os.path.join(save_directory, SPECIAL_TOKENS_MAP_FILE)
+        added_tokens_file = os.path.join(save_directory, ADDED_TOKENS_FILE)
+        tokenizer_config_file = os.path.join(save_directory, TOKENIZER_CONFIG_FILE)
+
         tokenizer_config = copy.deepcopy(self.init_kwargs)
         tokenizer_config['init_inputs'] = copy.deepcopy(self.init_inputs)
         for file_id in self.vocab_files_names.keys():
@@ -474,6 +478,7 @@ class PreTrainedTokenizer(object):
         vocab_files = self.save_vocabulary(save_directory)
 
         return vocab_files + (special_tokens_map_file, added_tokens_file)
+
 
     def save_vocabulary(self, save_directory):
         """ Save the tokenizer vocabulary to a directory. This method does *NOT* save added tokens
