@@ -102,7 +102,8 @@ class TextDataset(Dataset):
 						num_lines = sum(1 for line in fin)
 					self.total_num_examples += num_lines
 				continue
-
+			logger.info("HACK:Skipping file %s", input_file)
+			continue
 			logger.info("Processing file %s", input_file)
 
 			with open(input_file, 'r', encoding='utf-8') as fin:
