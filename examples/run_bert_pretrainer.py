@@ -94,15 +94,19 @@ class TextDataset(Dataset):
 			examples = []
 			input_file_rel_path = os.path.relpath(input_file, input_data_dir)
 			cached_file_path = os.path.join(cached_features_dir, input_file_rel_path + u'.pkl.gz')
-			self.cached_file_paths.append(cached_file_path)
+
 			if os.path.exists(cached_file_path):
+				self.cached_file_paths.append(cached_file_path)
 				logger.info("File already processed and cached %s", input_file)
 				if self.recalculate_total_num_examples:
 					with open(input_file, 'r', encoding='utf-8') as fin:
 						num_lines = sum(1 for line in fin)
 					self.total_num_examples += num_lines
 				continue
-			logger.info("HACK:Skipping file %s", input_file)
+			else:
+				logger.info("HACK:Skipping file %s", input_file)
+
+			self.cached_file_paths.append(cached_file_path)
 			continue
 			logger.info("Processing file %s", input_file)
 
