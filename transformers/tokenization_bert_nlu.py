@@ -102,8 +102,8 @@ class BertNLUTokenizer(BertTokenizer):
         cls = [self.cls_token_id]
         mlb = [self.mlb_token_id]
         if token_ids_1 is None:
-            return len(cls + token_ids_0 + sep + mlb + sep) * [0]
-        return len(cls + token_ids_0 + sep) * [0] + len(token_ids_1 + sep + mlb + sep) * [1]
+            return len(cls + token_ids_0 + sep + mlb) * [0]
+        return len(cls + token_ids_0 + sep) * [0] + len(token_ids_1 + sep + mlb) * [1]
 
     def get_special_tokens_mask(self, token_ids_0, token_ids_1=None, already_has_special_tokens=False):
         """
