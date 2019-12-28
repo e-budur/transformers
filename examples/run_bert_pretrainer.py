@@ -61,6 +61,7 @@ from transformers import glue_compute_metrics as compute_metrics
 from transformers import glue_output_modes as output_modes
 from transformers import glue_processors as processors
 from transformers import glue_convert_examples_to_features as convert_examples_to_features
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -84,6 +85,7 @@ class TextDataset(Dataset):
 		logger.info("Creating features from data directory at %s", input_data_dir)
 
 		files = glob.glob(input_data_dir + "/*txt")
+		random.seed(datetime.now())
 		random.shuffle(files)  # HACK: shuffling the list files to speed up preprocessing with multiple processes
 		self.cached_file_paths = []
 		for input_file in tqdm(files, desc="read files"):
