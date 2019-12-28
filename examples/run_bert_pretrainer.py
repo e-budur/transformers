@@ -74,9 +74,11 @@ MODEL_CLASSES = {
 
 
 class TextDataset(Dataset):
+
 	def __init__(self, tokenizer, input_data_dir='train', cache_folder_suffix='cached_features'):
 
-
+		self.total_num_examples = 81198328
+		self.recalculate_total_num_examples = False
 		cached_features_dir = input_data_dir + cache_folder_suffix
 
 		if not os.path.exists(cached_features_dir):
@@ -95,6 +97,10 @@ class TextDataset(Dataset):
 			self.cached_file_paths.append(cached_file_path)
 			if os.path.exists(cached_file_path):
 				logger.info("File already processed and cached %s", input_file)
+				if self.recalculate_total_num_examples:
+					with open(input_file, 'r', encoding='utf-8') as fin:
+						num_lines = sum(1 for line in fin)
+					self.total_num_examples += num_lines
 				continue
 
 			logger.info("Processing file %s", input_file)
@@ -122,6 +128,8 @@ class TextDataset(Dataset):
 						examples.append(example)
 						prev_sent = cur_sent
 
+			if self.recalculate_total_num_examples:
+				self.total_num_examples += len(examples)
 
 			logger.info("Saving features into cached file %s", cached_file_path)
 
@@ -208,13 +216,13 @@ def train(args, train_dataset, model, tokenizer, featurizer, config):
 
 	args.train_batch_size = args.per_gpu_train_batch_size * max(1, args.n_gpu)
 	train_sampler = RandomSampler(train_dataset) if args.local_rank == -1 else DistributedSampler(train_dataset)
-	train_data_fileloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=1) # load 1 file at a time
+	train_data_fileloader = DataLoader(train_dataset, sampler=train_sampler) # load 1 file at a time
 
 	if args.max_steps > 0:
 		t_total = args.max_steps
-		args.num_train_epochs = args.max_steps // (len(train_data_fileloader) // args.gradient_accumulation_steps) + 1
+		args.num_train_epochs = args.max_steps // (train_dataset.total_num_examples // args.gradient_accumulation_steps) + 1
 	else:
-		t_total = len(train_data_fileloader) // args.gradient_accumulation_steps * args.num_train_epochs
+		t_total = train_dataset.total_num_examples // args.gradient_accumulation_steps * args.num_train_epochs
 
 	# Prepare optimizer and schedule (linear warmup and decay)
 	no_decay = ['bias', 'LayerNorm.weight']
@@ -270,7 +278,10 @@ def train(args, train_dataset, model, tokenizer, featurizer, config):
 
 			total_example_count = len(file_data)
 			total_num_steps = int(total_example_count/args.train_batch_size)
-			example_iterator = tqdm(example_loader, desc="Examples", maxinterval=60*60, miniters=int(total_num_steps / 10.0))
+			example_iterator = tqdm(example_loader,
+									desc="Rank:"+str(args.local_rank) + " > Examples" ,
+									maxinterval=60*60,
+									miniters=int(total_num_steps / 10.0))
 
 			step = -1
 			for batch in example_iterator:
@@ -387,7 +398,7 @@ def main():
 						help="Batch size per GPU/CPU for evaluation.")
 	parser.add_argument('--gradient_accumulation_steps', type=int, default=1,
 						help="Number of updates steps to accumulate before performing a backward/update pass.")
-	parser.add_argument("--learning_rate", default=5e-5, type=float,
+	parser.add_argument("--learning_rate", default=1e-4, type=float,
 						help="The initial learning rate for Adam.")
 	parser.add_argument("--weight_decay", default=0.0, type=float,
 						help="Weight deay if we apply some.")
@@ -399,7 +410,7 @@ def main():
 						help="Total number of training epochs to perform.")
 	parser.add_argument("--max_steps", default=-1, type=int,
 						help="If > 0: set total number of training steps to perform. Override num_train_epochs.")
-	parser.add_argument("--warmup_steps", default=0, type=int,
+	parser.add_argument("--warmup_steps", default=10000, type=int,
 						help="Linear warmup over warmup_steps.")
 
 	parser.add_argument('--logging_steps', type=int, default=50,
