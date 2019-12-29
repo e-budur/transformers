@@ -32,9 +32,9 @@ if is_torch_available():
 
 logger = logging.getLogger(__name__)
 
-SPECIAL_TOKENS_MAP_FILE = 'configs/special_tokens_map.json'
-ADDED_TOKENS_FILE = 'configs/added_tokens.json'
-TOKENIZER_CONFIG_FILE = 'configs/tokenizer_config.json'
+SPECIAL_TOKENS_MAP_FILE = 'special_tokens_map.json'
+ADDED_TOKENS_FILE = 'added_tokens.json'
+TOKENIZER_CONFIG_FILE = 'tokenizer_config.json'
 
 class PreTrainedTokenizer(object):
     """ Base class for all tokenizers.

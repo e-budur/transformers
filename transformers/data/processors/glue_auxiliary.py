@@ -43,9 +43,11 @@ class SnliProcessor(MnliProcessor):
 
     def get_dev_examples(self, data_dir):
         """See base class."""
+        # HACK:Since the implementation for testing the test set is not currently available yet in the framework,
+        # we used test dataset during the evaluation to see the performance of the model on the test set.
         return self._create_examples(
-            self._read_tsv(os.path.join(data_dir, "dev.tsv")),
-            "dev")
+            self._read_tsv(os.path.join(data_dir, "test.tsv")),
+            "test")
 
     def _create_examples(self, lines, set_type):
         """Creates examples for the training and dev sets."""
@@ -69,9 +71,11 @@ class XnliProcessor(MnliProcessor):
 
     def get_dev_examples(self, data_dir):
         """See base class."""
+        # HACK:Since the implementation for testing the test set is not currently available yet in the framework,
+        # we used test dataset during the evaluation to see the performance of the model on the test set.
         return self._create_dev_examples(
-            self._read_tsv(os.path.join(data_dir, "xnli.dev.tsv")),
-            "dev")
+            self._read_tsv(os.path.join(data_dir, "xnli.test.tsv")),
+            "test")
 
     def get_train_examples(self, data_dir):
         """See base class."""
