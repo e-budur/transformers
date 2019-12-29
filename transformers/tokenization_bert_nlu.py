@@ -86,6 +86,10 @@ class BertNLUTokenizer(BertTokenizer):
         """ Id of the multi label token in the vocabulary. E.g. to extract a summary of an bag of tokens leveraging self-attention along the full depth of the model. Log an error if used while not having been set. """
         return self.convert_tokens_to_ids(self._mlb_token)
 
+    @property
+    def mlb_token(self):
+        return self._mlb_token
+
     def build_inputs_with_special_tokens(self, token_ids_0, token_ids_1=None):
         """
         Build model inputs from a sequence or a pair of sequence for sequence classification tasks
