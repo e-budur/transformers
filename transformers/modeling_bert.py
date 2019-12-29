@@ -253,7 +253,7 @@ class BertSelfAttention(nn.Module):
             'queries': query_layer,
             'keys': key_layer
         }
-        print('output_attentions', output_attentions)
+        print('self.output_attentions', self.output_attentions)
         outputs = (context_layer, attn_data) if self.output_attentions else (context_layer,)
         return outputs
 
