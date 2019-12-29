@@ -111,7 +111,7 @@ class BertNLUForPreTraining(BertPreTrainedModel):
     def __init__(self, config):
         super(BertNLUForPreTraining, self).__init__(config)
 
-        self.bert_nlu = BertNLUModel(config)
+        self.bert = BertNLUModel(config)
         self.cls = BertNLUPreTrainingHeads(config)
         self.config = config
         self.init_weights()
@@ -123,13 +123,13 @@ class BertNLUForPreTraining(BertPreTrainedModel):
             Export to TorchScript can't handle parameter sharing so we are cloning them instead.
         """
         self._tie_or_clone_weights(self.cls.predictions.decoder,
-                                   self.bert_nlu.embeddings.word_embeddings)
+                                   self.bert.embeddings.word_embeddings)
 
     def forward(self, input_ids, attention_mask=None, token_type_ids=None, position_ids=None, head_mask=None,
                 inputs_embeds=None,
                 masked_lm_labels=None, next_sentence_label=None, bag_of_tokens_label=None):
 
-        outputs = self.bert_nlu(input_ids,
+        outputs = self.bert(input_ids,
                             attention_mask=attention_mask,
                             token_type_ids=token_type_ids,
                             position_ids=position_ids,
