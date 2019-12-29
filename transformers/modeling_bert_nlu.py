@@ -60,11 +60,10 @@ class BertOnlyMultiLabelHead(nn.Module):
 class BertNLUPreTrainingHeads(original_bert.BertPreTrainingHeads):
    def __init__(self, config):
        super(BertNLUPreTrainingHeads, self).__init__(config)
-       self.bert_pretraining_heads = original_bert.BertPreTrainingHeads(config)
        self.multi_label_prediction = BertOnlyMultiLabelHead(config)
 
    def forward(self, sequence_output, multi_class_pooled_output, multi_label_pooled_output):
-       language_model_prediction_scores, seq_relationship_score = self.bert_pretraining_heads(sequence_output, multi_class_pooled_output)
+       language_model_prediction_scores, seq_relationship_score = super(BertNLUPreTrainingHeads, self).forward(sequence_output, multi_class_pooled_output)
        multi_label_prediction_scores = self.multi_label_prediction(multi_label_pooled_output)
        return language_model_prediction_scores, seq_relationship_score, multi_label_prediction_scores
 
