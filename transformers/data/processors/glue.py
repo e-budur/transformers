@@ -211,8 +211,8 @@ class MnliProcessor(DataProcessor):
         # HACK:Since the implementation for testing the test set is not currently available yet in the framework,
         # we used test dataset during the evaluation to see the performance of the model on the test set.
         return self._create_examples(
-            self._read_tsv(os.path.join(data_dir, "test_matched.tsv")),
-            "test_matched")
+            self._read_tsv(os.path.join(data_dir, "dev_matched.tsv")),
+            "dev_matched")
 
     def get_labels(self):
         """See base class."""
@@ -241,8 +241,8 @@ class MnliMismatchedProcessor(MnliProcessor):
         # HACK:Since the implementation for testing the test set is not currently available yet in the framework,
         # we used test dataset during the evaluation to see the performance of the model on the test set.
         return self._create_examples(
-            self._read_tsv(os.path.join(data_dir, "test_mismatched.tsv")),
-            "test_matched")
+            self._read_tsv(os.path.join(data_dir, "dev_mismatched.tsv")),
+            "dev_matched")
 
 
 class ColaProcessor(DataProcessor):
