@@ -146,3 +146,8 @@ slurm_output
 slurm_outputs
 scripts/slurm
 scripts/scratch
+
+debug.env
+
+# vim
+.*.swp
