@@ -172,7 +172,19 @@ class XnliNMTProcessor(MnliNMTProcessor):
         super().__init__('multinli_train_translation.json', 'xnli_dev_translation.json')
         self.lang=lang
 
-    def _create_examples_from_json(self, data, set_type):
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        return self._create_test_examples_from_json(
+            self._read_json(os.path.join(data_dir, self.dev_filename)),
+            "dev")
+
+    def get_test_examples(self, data_dir):
+        """See base class."""
+        return self._create_test_examples_from_json(
+            self._read_json(os.path.join(data_dir, self.dev_filename)),
+            "dev")
+
+    def _create_test_examples_from_json(self, data, set_type):
         """Creates examples for the training and dev sets."""
         examples = []
         for (i, data_item) in enumerate(data):
