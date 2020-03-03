@@ -1,5 +1,5 @@
 function addIcon() {
-    const huggingFaceLogo = "https://huggingface.co/assets/transformers-docs/huggingface_logo.svg";
+    const huggingFaceLogo = "https://huggingface.co/landing/assets/transformers-docs/huggingface_logo.svg";
     const image = document.createElement("img");
     image.setAttribute("src", huggingFaceLogo);
 
@@ -24,10 +24,10 @@ function addCustomFooter() {
     social.classList.add("footer__Social");
 
     const imageDetails = [
-        { link: "https://huggingface.co", imageLink: "https://huggingface.co/assets/transformers-docs/website.svg" },
-        { link: "https://twitter.com/huggingface", imageLink: "https://huggingface.co/assets/transformers-docs/twitter.svg" },
-        { link: "https://github.com/huggingface", imageLink: "https://huggingface.co/assets/transformers-docs/github.svg" },
-        { link: "https://www.linkedin.com/company/huggingface/", imageLink: "https://huggingface.co/assets/transformers-docs/linkedin.svg" }
+        { link: "https://huggingface.co", imageLink: "https://huggingface.co/landing/assets/transformers-docs/website.svg" },
+        { link: "https://twitter.com/huggingface", imageLink: "https://huggingface.co/landing/assets/transformers-docs/twitter.svg" },
+        { link: "https://github.com/huggingface", imageLink: "https://huggingface.co/landing/assets/transformers-docs/github.svg" },
+        { link: "https://www.linkedin.com/company/huggingface/", imageLink: "https://huggingface.co/landing/assets/transformers-docs/linkedin.svg" }
     ];
 
     imageDetails.forEach(imageLinks => {
@@ -58,6 +58,16 @@ function addGithubButton() {
     document.querySelector(".wy-side-nav-search .icon-home").insertAdjacentHTML('afterend', div);
 }
 
+function addHfMenu() {
+    const div = `
+    <div class="menu">
+        <a href="/welcome">🔥 Sign in</a>
+        <a href="/models">🚀 Models</a>
+    </div>
+    `;
+    document.body.insertAdjacentHTML('afterbegin', div);
+}
+
 /*!
  * github-buttons v2.2.10
  * (c) 2019 なつき
@@ -74,6 +84,7 @@ function onLoad() {
     addCustomFooter();
     addGithubButton();
     parseGithubButtons();
+    addHfMenu();
 }
 
 window.addEventListener("load", onLoad);

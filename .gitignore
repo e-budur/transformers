@@ -138,6 +138,11 @@ serialization_dir
 
 # emacs
 *.*~
+debug.env
+
+# vim
+.*.swp
+
 
 # phd-thesis
 output
