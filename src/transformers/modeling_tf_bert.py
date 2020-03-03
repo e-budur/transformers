@@ -517,18 +517,6 @@ class TFBertMainLayer(tf.keras.layers.Layer):
             inputs_embeds = inputs[5] if len(inputs) > 5 else inputs_embeds
             assert len(inputs) <= 6, "Too many inputs."
         elif isinstance(inputs, dict):
-<<<<<<< HEAD:transformers/modeling_tf_bert.py
-            input_ids = inputs.get('input_ids')
-            input_ids = tf.cast(input_ids, dtype=tf.int32)
-            attention_mask = inputs.get('attention_mask', attention_mask)
-            token_type_ids = inputs.get('token_type_ids', token_type_ids)
-            token_type_ids = tf.cast(token_type_ids, dtype=tf.int32)
-            position_ids = inputs.get('position_ids', position_ids)
-            position_ids = tf.cast(position_ids, dtype=tf.int32)
-
-            head_mask = inputs.get('head_mask', head_mask)
-            assert len(inputs) <= 5, "Too many inputs."
-=======
             input_ids = inputs.get("input_ids")
             attention_mask = inputs.get("attention_mask", attention_mask)
             token_type_ids = inputs.get("token_type_ids", token_type_ids)
@@ -536,7 +524,6 @@ class TFBertMainLayer(tf.keras.layers.Layer):
             head_mask = inputs.get("head_mask", head_mask)
             inputs_embeds = inputs.get("inputs_embeds", inputs_embeds)
             assert len(inputs) <= 6, "Too many inputs."
->>>>>>> master:src/transformers/modeling_tf_bert.py
         else:
             input_ids = inputs
             input_ids = tf.cast(input_ids, dtype=tf.int32)
