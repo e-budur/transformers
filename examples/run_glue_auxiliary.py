@@ -26,12 +26,13 @@ from transformers.configuration_bert_nlu import BertConfig
 from transformers.configuration_bert_nlu import BertNLUConfig
 from transformers.modeling_bert_nlu import BertNLUForSequenceClassification
 from transformers.tokenization_bert_nlu import BertNLUTokenizer
+from transformers.modeling_bert import BertForSequenceClassification
 
 logger = logging.getLogger(__name__)
 
 
 if __name__ == "__main__":
    run_glue.MODEL_CLASSES['bert-nlu'] = (BertNLUConfig, BertNLUForSequenceClassification, BertNLUTokenizer)
-   run_glue.MODEL_CLASSES['bert-auto'] = (AutoConfig, AutoModel, AutoTokenizer)
+   run_glue.MODEL_CLASSES['bert-auto'] = (AutoConfig, BertForSequenceClassification, AutoTokenizer)
 
    run_glue.main()
