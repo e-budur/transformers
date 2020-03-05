@@ -168,7 +168,7 @@ class SnliNMTProcessor(MnliNMTProcessor):
 
 class XnliNMTProcessor(MnliNMTProcessor):
     """Processor for the XNLI NMT Matched data set."""
-    def __init__(self, lang='tr'):
+    def __init__(self, lang='en'):
         super().__init__('multinli_train_translation.json', 'xnli_dev_translation.json')
         self.lang=lang
 
