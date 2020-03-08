@@ -155,7 +155,7 @@ class LineByLineTextDatasetsWithGzipCache(Dataset):
         Path(cached_features_dir).mkdir(parents=True, exist_ok=True)
         self.total_num_examples = 0
         files = glob.glob(input_data_dir + "/*txt")
-        random.seed(datetime.now())
+        random.seed(args.seed)
         random.shuffle(files)  # HACK: shuffling the list files to speed up preprocessing with multiple processes
         self.cached_file_paths = []
         for input_file in tqdm(files, desc="read files"):
