@@ -62,8 +62,9 @@ from transformers import (
     RobertaTokenizer,
     get_linear_schedule_with_warmup,
 )
-
-
+from datetime import datetime
+from compress_pickle import dump, load
+import codecs
 try:
     from torch.utils.tensorboard import SummaryWriter
 except ImportError:
@@ -143,12 +144,60 @@ class LineByLineTextDataset(Dataset):
     def __getitem__(self, i):
         return torch.tensor(self.examples[i], dtype=torch.long)
 
+class LineByLineTextDatasetsWithGzipCache(Dataset):
+    def __init__(self, tokenizer: PreTrainedTokenizer, args, input_data_dir: str, block_size=512, cache_folder_suffix='cached_features'):
+        assert os.path.isdir(input_data_dir)
+        logger.info("Creating features from dataset folder at %s", input_data_dir)
+        cached_features_dir = input_data_dir + cache_folder_suffix
+
+        files = glob.glob(input_data_dir + "/*txt")
+        random.seed(datetime.now())
+        random.shuffle(files)  # HACK: shuffling the list files to speed up preprocessing with multiple processes
+        self.cached_file_paths = []
+        for input_file in tqdm(files, desc="read files"):
+            examples = []
+            input_file_rel_path = os.path.relpath(input_file, input_data_dir)
+            cached_file_path = os.path.join(cached_features_dir, input_file_rel_path + u'.pkl.gz')
+            self.cached_file_paths.append(cached_file_path)
+            if os.path.exists(cached_file_path):
+                logger.info("File already processed and cached %s", input_file)
+                continue
+
+            logger.info("Processing file %s", input_file)
+
+            with codecs.open(input_file, 'r', encoding='utf-8') as f:
+                lines = [line for line in f.read().splitlines() if (len(line) > 0 and not line.isspace())]
+                self.examples = tokenizer.batch_encode_plus(lines, add_special_tokens=True, max_length=block_size)[
+                    "input_ids"]
+
+            logger.info("Saving features into cached file %s", cached_file_path)
+
+            dump(examples, cached_file_path)  # pickling with a gzip compression
+
+    def __len__(self):
+        return len(self.cached_file_paths)
+
+    def __getitem__(self, index):
+        try:
+            logger.info("\n{} - Reading file : {}\n".format(index, self.cached_file_paths[index]))
+            examples = load(self.cached_file_paths[index])
+        except Exception as error:
+            logger.info('Failed to read file for some reasons: ' + str(error))
+            logger.info('The file was skipped')
+            examples = []
+
+        return torch.tensor(examples, dtype=torch.long)
 
 def load_and_cache_examples(args, tokenizer, evaluate=False):
-    file_path = args.eval_data_file if evaluate else args.train_data_file
-    if args.line_by_line:
+
+    if args.line_by_line_gzip_cache:
+        input_data_dir = args.input_data_dir
+        return LineByLineTextDatasetsWithGzipCache(tokenizer, args, input_data_dir=input_data_dir, block_size=args.block_size)
+    elif args.line_by_line:
+        file_path = args.eval_data_file if evaluate else args.train_data_file
         return LineByLineTextDataset(tokenizer, args, file_path=file_path, block_size=args.block_size)
     else:
+        file_path = args.eval_data_file if evaluate else args.train_data_file
         return TextDataset(tokenizer, args, file_path=file_path, block_size=args.block_size)
 
 
@@ -488,6 +537,9 @@ def main():
         "--train_data_file", default=None, type=str, required=True, help="The input training data file (a text file)."
     )
     parser.add_argument(
+        "--input_data_dir", default=None, type=str, required=False, help="The data folder containing input training data files (text files)."
+    )
+    parser.add_argument(
         "--output_dir",
         type=str,
         required=True,
@@ -508,6 +560,11 @@ def main():
         "--line_by_line",
         action="store_true",
         help="Whether distinct lines of text in the dataset are to be handled as distinct sequences.",
+    )
+    parser.add_argument(
+        "--line_by_line_gzip_cache",
+        action="store_true",
+        help="Whether a number of distinct line of text are to be handled as a distinct sequence and cached in a gzipped format.",
     )
     parser.add_argument(
         "--should_continue", action="store_true", help="Whether to continue from latest checkpoint in output_dir"
@@ -649,6 +706,18 @@ def main():
             "Output directory ({}) already exists and is not empty. Use --overwrite_output_dir to overcome.".format(
                 args.output_dir
             )
+        )
+
+    if args.line_by_line_gzip_cache is None and args.input_data_dir:
+        raise ValueError(
+            "Cannot process text files and cached in gzipped format without input_data_dir is defined. Either supply a folder to --input_data_dir "
+            "or remove the --line_by_line_gzip_cache argument."
+        )
+
+    if args.input_data_dir is None and args.line_by_line_gzip_cache:
+        raise ValueError(
+            "Cannot process the folder input_data_dir unless line_by_line_gzip_cache is defined. Either supply the parameter --line_by_line_gzip_cache "
+            "or remove the --input_data_dir argument."
         )
 
     # Setup distant debugging if needed
