@@ -73,6 +73,7 @@ except ImportError:
 
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 MODEL_CLASSES = {
     "gpt2": (GPT2Config, GPT2LMHeadModel, GPT2Tokenizer),
