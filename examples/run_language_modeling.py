@@ -172,7 +172,7 @@ class LineByLineTextDatasetsWithGzipCache(Dataset):
                 continue
             if lock_file_path_obj.exists():
                 continue
-            lock_file_path_obj.open()
+            lock_file_path_obj.open(mode='w')
             logger.info("Processing file %s", input_file)
 
             with codecs.open(input_file, 'r', encoding='utf-8') as f:
@@ -189,7 +189,7 @@ class LineByLineTextDatasetsWithGzipCache(Dataset):
             logger.info("Saving features into cached file %s", cached_file_path)
             self.total_num_examples += len(examples)
             dump(examples, cached_file_path)  # pickling with a gzip compression
-            lock_file_path_obj.unlink(missing_ok=False)
+            lock_file_path_obj.unlink()
 
     def __len__(self):
         return self.total_num_examples
