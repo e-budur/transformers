@@ -1,22 +1,22 @@
 from pathlib import Path
 import argparse
 
-from tokenizers import ByteLevelBPETokenizer
+from tokenizers import ByteLevelBPETokenizer, BertWordPieceTokenizer
 
 def run_tokenizer(args):
     paths = [str(x) for x in Path(args.input_data_dir).glob("**/*.txt")]
 
     # Initialize a tokenizer
-    tokenizer = ByteLevelBPETokenizer()
+    tokenizer = BertWordPieceTokenizer(lowercase=False)
 
     # Customize training
-    tokenizer.train(files=paths, vocab_size=args.vocab_size, min_frequency=2, special_tokens=[
-        "<s>",
-        "<pad>",
-        "</s>",
-        "<unk>",
-        "<mask>",
-    ])
+    tokenizer.train(files=paths,
+                    vocab_size=args.vocab_size,
+                    min_frequency=2,
+                    special_tokens=["[PAD]", "[UNK]", "[CLS]", "[SEP]", "[MASK]"],
+                    limit_alphabet=1000,
+                    wordpieces_prefix="##",
+                   )
 
     # Save files to disk
     tokenizer.save(args.output_dir, args.model_name)
