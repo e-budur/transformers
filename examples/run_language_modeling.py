@@ -147,6 +147,7 @@ class LineByLineTextDataset(Dataset):
 
 class LineByLineTextDatasetsWithGzipCache(Dataset):
 
+
     def __init__(self, tokenizer: PreTrainedTokenizer, args, input_data_dir: str, block_size=512, cache_folder_suffix='cached_features'):
         assert os.path.isdir(input_data_dir)
         logger.info("Creating features from dataset folder at %s", input_data_dir)
@@ -178,7 +179,17 @@ class LineByLineTextDatasetsWithGzipCache(Dataset):
             with codecs.open(input_file, 'r', encoding='utf-8') as f:
                 lines = [line for line in f.read().splitlines() if (len(line) > 0 and not line.isspace())]
                 for line in lines:
-                    example = tokenizer.encode_plus(line, add_special_tokens=True, max_length=block_size, pad_to_max_length=True)[
+
+                    if args.word_order_shuffle_prob>0:
+                        token_ids = tokenizer.encode_plus(line, add_special_tokens=False, max_length=block_size,
+                                              pad_to_max_length=False)[
+                            "input_ids"]
+
+                        self.shuffle_word_order(token_ids, args.word_order_shuffle_prob)
+                        example = tokenizer.prepare_for_model(token_ids, add_special_tokens=True, max_length=block_size, pad_to_max_length=True)[
+                            "input_ids"]
+                    else:
+                        example = tokenizer.encode_plus(line, add_special_tokens=True, max_length=block_size, pad_to_max_length=True)[
                         "input_ids"]
                     examples.append(example)
 
@@ -190,6 +201,16 @@ class LineByLineTextDatasetsWithGzipCache(Dataset):
             self.total_num_examples += len(examples)
             dump(examples, cached_file_path)  # pickling with a gzip compression
             lock_file_path_obj.unlink()
+
+    def shuffle_word_order(self, tokens, word_order_shuffle_prob):
+        for i in range(len(tokens)):
+            random_prob = random.uniform(0, 1)
+            should_swap = random_prob < word_order_shuffle_prob
+            if should_swap:
+                j = int(random.uniform(0, len(tokens))) # choose a random token to swap
+                tmp_token = tokens[i]
+                tokens[i] = tokens[j]
+                tokens[j] = tmp_token
 
     def __len__(self):
         return self.total_num_examples
@@ -696,6 +717,7 @@ def main():
     parser.add_argument("--server_ip", type=str, default="", help="For distant debugging.")
     parser.add_argument("--server_port", type=str, default="", help="For distant debugging.")
     parser.add_argument('--tensorboard_log_dir', type=str, default=None, help="For logging directory of tensorboard.")
+    parser.add_argument('--word_order_shuffle_prob', type=float, default=0.0, help="For shuffling word order.")
     args = parser.parse_args()
 
     if args.model_type in ["bert", "roberta", "distilbert", "camembert"] and not args.mlm:
