@@ -297,7 +297,7 @@ def mask_tokens(inputs: torch.Tensor, tokenizer: PreTrainedTokenizer, args) -> T
 def train(args, train_dataset, model: PreTrainedModel, tokenizer: PreTrainedTokenizer) -> Tuple[int, float]:
     """ Train the model """
     if args.local_rank in [-1, 0]:
-        tb_writer = SummaryWriter()
+        tb_writer = SummaryWriter(args.tensorboard_log_dir)
 
     args.train_batch_size = args.per_gpu_train_batch_size * max(1, args.n_gpu)
 
@@ -691,6 +691,7 @@ def main():
     parser.add_argument("--local_rank", type=int, default=-1, help="For distributed training: local_rank")
     parser.add_argument("--server_ip", type=str, default="", help="For distant debugging.")
     parser.add_argument("--server_port", type=str, default="", help="For distant debugging.")
+    parser.add_argument('--tensorboard_log_dir', type=str, default=None, help="For logging directory of tensorboard.")
     args = parser.parse_args()
 
     if args.model_type in ["bert", "roberta", "distilbert", "camembert"] and not args.mlm:
