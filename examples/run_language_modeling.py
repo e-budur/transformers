@@ -223,7 +223,6 @@ class LineByLineTextDatasetsWithGzipCache(Dataset):
                 self.examples = load(cur_cached_file_name)
                 logger.info("\n{} - Reading file completed : {}\nNum of examples in the file : {}\n".format(index, cur_cached_file_name, len(self.examples)))
             cur_example = self.examples.pop()
-            logger.info("\nexample read. Remaining examples: {}\n".format(len(self.examples)))
         except Exception as error:
             logger.info('Failed to read file for some reasons: ' + str(error))
             logger.info('The file was skipped')
