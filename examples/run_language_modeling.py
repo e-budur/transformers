@@ -221,6 +221,7 @@ class LineByLineTextDatasetsWithGzipCache(Dataset):
                 cur_cached_file_name = self.cached_file_paths.pop()
                 logger.info("\n{} - Reading file : {}\n".format(index, cur_cached_file_name))
                 self.examples = load(cur_cached_file_name)
+                logger.info("\n{} - Reading file completed : {}\n".format(index, cur_cached_file_name))
             cur_example = self.examples.pop()
         except Exception as error:
             logger.info('Failed to read file for some reasons: ' + str(error))
