@@ -430,7 +430,7 @@ def train(args, train_dataset, model: PreTrainedModel, tokenizer: PreTrainedToke
     for epoch_num in train_iterator:
         min_iters = int(len(train_dataloader)/(args.save_steps if args.save_steps > 0 else 100))
         logger.info('Progress will be printed in each {} steps \n'.format(args.save_steps))
-        epoch_iterator = tqdm(train_dataloader, desc="Epoch: {}, Iteration".format(epoch_num), disable=args.local_rank not in [-1, 0], miniters=min_iters)
+        epoch_iterator = tqdm(train_dataloader, desc="Epoch: {}, Iteration".format(epoch_num), disable=args.local_rank not in [-1, 0], maxinterval=60*60, miniters=min_iters)
         for step, batch in enumerate(epoch_iterator):
 
             # Skip past any already trained steps if resuming training
