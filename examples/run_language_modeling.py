@@ -233,7 +233,7 @@ class LineByLineTextDatasetsWithGzipCache(Dataset):
 def load_and_cache_examples(args, tokenizer, evaluate=False):
 
     if args.line_by_line_gzip_cache:
-        input_data_dir = args.input_data_dir
+        input_data_dir = args.eval_data_dir if evaluate else args.train_data_dir
         return LineByLineTextDatasetsWithGzipCache(tokenizer, args, input_data_dir=input_data_dir, block_size=args.block_size)
     elif args.line_by_line:
         file_path = args.eval_data_file if evaluate else args.train_data_file
@@ -579,7 +579,7 @@ def main():
         "--train_data_file", default=None, type=str, required=True, help="The input training data file (a text file)."
     )
     parser.add_argument(
-        "--input_data_dir", default=None, type=str, required=False, help="The data folder containing input training data files (text files)."
+        "--train_data_dir", default=None, type=str, required=False, help="The data folder containing input training data files (text files)."
     )
     parser.add_argument(
         "--output_dir",
@@ -597,6 +597,12 @@ def main():
         default=None,
         type=str,
         help="An optional input evaluation data file to evaluate the perplexity on (a text file).",
+    )
+    parser.add_argument(
+        "--eval_data_dir",
+        default=None,
+        type=str,
+        help="An optional input evaluation data dir to evaluate the perplexity on (a text file).",
     )
     parser.add_argument(
         "--line_by_line",
@@ -752,16 +758,16 @@ def main():
             )
         )
 
-    if args.line_by_line_gzip_cache is None and args.input_data_dir:
+    if args.line_by_line_gzip_cache is None and args.train_data_dir:
         raise ValueError(
-            "Cannot process text files and cached in gzipped format without input_data_dir is defined. Either supply a folder to --input_data_dir "
+            "Cannot process text files and cached in gzipped format without train_data_dir is defined. Either supply a folder to --train_data_dir "
             "or remove the --line_by_line_gzip_cache argument."
         )
 
-    if args.input_data_dir is None and args.line_by_line_gzip_cache:
+    if args.train_data_dir is None and args.line_by_line_gzip_cache:
         raise ValueError(
-            "Cannot process the folder input_data_dir unless line_by_line_gzip_cache is defined. Either supply the parameter --line_by_line_gzip_cache "
-            "or remove the --input_data_dir argument."
+            "Cannot process the folder train_data_dir unless line_by_line_gzip_cache is defined. Either supply the parameter --line_by_line_gzip_cache "
+            "or remove the --train_data_dir argument."
         )
 
     # Setup distant debugging if needed
