@@ -180,17 +180,18 @@ class LineByLineTextDatasetsWithGzipCache(Dataset):
                 lines = [line for line in f.read().splitlines() if (len(line) > 0 and not line.isspace())]
                 for line in lines:
 
-                    if args.word_order_shuffle_prob>0:
-                        token_ids = tokenizer.encode_plus(line, add_special_tokens=False, max_length=block_size,
-                                              pad_to_max_length=False)[
-                            "input_ids"]
-
-                        self.shuffle_word_order(token_ids, args.word_order_shuffle_prob)
-                        example = tokenizer.prepare_for_model(token_ids, add_special_tokens=True, max_length=block_size, pad_to_max_length=True)[
-                            "input_ids"]
-                    else:
-                        example = tokenizer.encode_plus(line, add_special_tokens=True, max_length=block_size, pad_to_max_length=True)[
+                    token_ids = tokenizer.encode_plus(line, add_special_tokens=False, max_length=block_size,
+                                                      pad_to_max_length=False)[
                         "input_ids"]
+
+                    should_swap_flag = self.should_swap(args)
+                    if should_swap_flag:
+                        self.shuffle_word_order(token_ids, args)
+
+                    example = tokenizer.prepare_for_model(token_ids, add_special_tokens=True, max_length=block_size,
+                                                          pad_to_max_length=True)[
+                        "input_ids"]
+
                     examples.append(example)
 
 
@@ -202,11 +203,15 @@ class LineByLineTextDatasetsWithGzipCache(Dataset):
             dump(examples, cached_file_path)  # pickling with a gzip compression
             lock_file_path_obj.unlink()
 
-    def shuffle_word_order(self, tokens, word_order_shuffle_prob):
+    def should_swap(self, args):
+        random_prob = random.uniform(0, 1)
+        should_swap = random_prob < args.word_order_shuffle_prob
+        return should_swap
+
+    def shuffle_word_order(self, tokens, args):
         for i in range(len(tokens)):
-            random_prob = random.uniform(0, 1)
-            should_swap = random_prob < word_order_shuffle_prob
-            if should_swap:
+            should_swap_flag = self.should_swap(args)
+            if should_swap_flag:
                 j = int(random.uniform(0, len(tokens))) # choose a random token to swap
                 tmp_token = tokens[i]
                 tokens[i] = tokens[j]
