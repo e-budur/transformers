@@ -90,7 +90,8 @@ def load_tf_weights_in_bert(model, config, tf_checkpoint_path):
         # ebudur: added some additional variables to skip according to the suggestion in the following issue
         # https://github.com/huggingface/transformers/issues/393#issuecomment-513446685
         if any(
-            n in ["adam_v", "adam_m", "AdamWeightDecayOptimizer", "AdamWeightDecayOptimizer_1", "global_step", "good_steps", "loss_scale", "batch_finite"]
+            n in ["adam_v", "adam_m", "AdamWeightDecayOptimizer", "AdamWeightDecayOptimizer_1", "global_step", "good_steps", "loss_scale",
+                  "batch_finite", "accum"]
             for n in name
         ):
             logger.info("Skipping {}".format("/".join(name)))
