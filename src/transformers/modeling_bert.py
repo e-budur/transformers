@@ -87,8 +87,10 @@ def load_tf_weights_in_bert(model, config, tf_checkpoint_path):
         name = name.split("/")
         # adam_v and adam_m are variables used in AdamWeightDecayOptimizer to calculated m and v
         # which are not required for using pretrained model
+        # ebudur: added some additional variables to skip according to the suggestion in the following issue
+        # https://github.com/huggingface/transformers/issues/393#issuecomment-513446685
         if any(
-            n in ["adam_v", "adam_m", "AdamWeightDecayOptimizer", "AdamWeightDecayOptimizer_1", "global_step"]
+            n in ["adam_v", "adam_m", "AdamWeightDecayOptimizer", "AdamWeightDecayOptimizer_1", "global_step", "good_steps", "loss_scale"]
             for n in name
         ):
             logger.info("Skipping {}".format("/".join(name)))
