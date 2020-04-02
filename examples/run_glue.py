@@ -252,6 +252,8 @@ def train(args, train_dataset, model, tokenizer):
                         for key, value in results.items():
                             eval_key = "eval_{}".format(key)
                             logs[eval_key] = value
+                        if args.dynamic_evaluation_step_regime:
+                            args.evaluation_steps *= 2
 
                     loss_scalar = (tr_loss - logging_loss) / args.logging_steps
                     learning_rate_scalar = scheduler.get_lr()[0]
@@ -555,6 +557,8 @@ def main():
     # additional arguments required for e-budur
     parser.add_argument('--evaluation_steps', type=int, default=0,
                         help="Log every X updates steps.")
+    parser.add_argument('--dynamic_evaluation_step_regime', type=bool, default=False,
+                        help="Apply dynamic evaluation regime.")
     parser.add_argument('--tensorboard_log_dir', type=str, default=None, help="For logging directory of tensorboard.")
 
     args = parser.parse_args()
