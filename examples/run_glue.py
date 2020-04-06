@@ -15,13 +15,9 @@
 # limitations under the License.
 """ Finetuning the library models for sequence classification on GLUE (Bert, XLM, XLNet, RoBERTa, Albert, XLM-RoBERTa)."""
 
-
-import argparse
 import glob
 import json
 import logging
-import os
-import random
 
 import numpy as np
 import torch
@@ -62,7 +58,7 @@ from transformers import glue_compute_metrics as compute_metrics
 from transformers import glue_convert_examples_to_features as convert_examples_to_features
 from transformers import glue_output_modes as output_modes
 from transformers import glue_processors as processors
-
+from examples.berturk_preprocessor import *
 
 try:
     from torch.utils.tensorboard import SummaryWriter
@@ -393,6 +389,7 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False):
         examples = (
             processor.get_dev_examples(args.data_dir) if evaluate else processor.get_train_examples(args.data_dir)
         )
+        preprocess_examples(examples, args)
         features = convert_examples_to_features(
             examples,
             tokenizer,
@@ -421,6 +418,7 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False):
 
     dataset = TensorDataset(all_input_ids, all_attention_mask, all_token_type_ids, all_labels)
     return dataset
+
 
 
 def main():
@@ -561,6 +559,27 @@ def main():
         "--dynamic_evaluation_step_regime", action="store_true", help="Apply dynamic evaluation regime.",
     )
     parser.add_argument('--tensorboard_log_dir', type=str, default=None, help="For logging directory of tensorboard.")
+
+    parser.add_argument("--zemberek_path", default=None, type=str, required=True,
+                        help="The zemberek library path.")
+    parser.add_argument("--java_home_path", default=None, type=str, required=False,
+                        help="The java home path.")
+    parser.add_argument("--do_morphological_preprocessing", default=False,
+                        action="store_true", required=False,
+                        help="Whether to preprocess the input file using a morphological parser.")
+
+    parser.add_argument("--omit_suffixes_after_morphological_preprocessing", action="store_true",
+                        required=False,
+                        help="Whether to omit suffixes in the resulting tokens of a morphological parser.")
+
+    parser.add_argument("--do_ngram_preprocessing", default=False,
+                        action="store_true", required=False,
+                        help="Whether to preprocess the input file by using ngram sequence method.")
+    parser.add_argument("--do_lowercase", default=False,
+                        action="store_true", required=False,
+                        help="Whether to preprocess the input file by using ngram sequence method.")
+    parser.add_argument("--ngram_size", default=None, type=int, required=False,
+                        help="The size of ngram when do_ngram_preprocessing is True.")
 
     args = parser.parse_args()
 
