@@ -195,7 +195,7 @@ def train(args, train_dataset, model, tokenizer):
         epochs_trained, int(args.num_train_epochs), desc="Epoch", disable=args.local_rank not in [-1, 0],
     )
     set_seed(args)  # Added here for reproductibility
-    for _ in train_iterator:
+    for epoch_num in train_iterator:
         epoch_iterator = tqdm(train_dataloader, desc="Iteration", disable=args.local_rank not in [-1, 0])
         for step, batch in enumerate(epoch_iterator):
 
@@ -248,7 +248,7 @@ def train(args, train_dataset, model, tokenizer):
                         for key, value in results.items():
                             eval_key = "eval_{}".format(key)
                             logs[eval_key] = value
-                        if args.dynamic_evaluation_step_regime:
+                        if epoch_num > 0 and args.dynamic_evaluation_step_regime:
                             args.evaluation_steps *= 2
 
                     loss_scalar = (tr_loss - logging_loss) / args.logging_steps
