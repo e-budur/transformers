@@ -420,7 +420,7 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False):
     return dataset
 
 
-
+def print_arguments()
 def main():
     parser = argparse.ArgumentParser()
 
@@ -582,7 +582,8 @@ def main():
                         help="The size of ngram when do_ngram_preprocessing is True.")
 
     args = parser.parse_args()
-
+    print(args)
+    logger.info(args)
     if (
         os.path.exists(args.output_dir)
         and os.listdir(args.output_dir)
