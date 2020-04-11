@@ -45,7 +45,7 @@ def parse_morphologically(sentence, params):
     if sentence.strip() == u'':
        return sentence
 
-    if params['lowercase']:
+    if params['lower_case']:
         sentence = sentence.lower() # this line should be improved by using the lower method of unicode_tr library
 
     sentence_analysis = params['morphology'].analyzeAndDisambiguate(JString(sentence))
@@ -72,7 +72,7 @@ def parse_basically(sentence, params):
     if sentence.strip() == u'':
        return sentence
 
-    if params['lowercase']:
+    if params['lower_case']:
         sentence = sentence.lower() # this line should be improved by using the lower method of unicode_tr library
 
     return sentence
@@ -110,7 +110,7 @@ def from_sentence_to_character_ngram_sequence(sentence, params):
     list of str
     """
     ngrams_of_tokens = []
-    if params['lowercase']:
+    if params['lower_case']:
         sentence = sentence.lower() # this line should be improved by using the lower method of unicode_tr library
 
     for token in sentence.split(' '):
@@ -128,18 +128,18 @@ def get_preprocess_parameters(args):
             'AnalysisFormatters': JClass('zemberek.morphology.analysis.AnalysisFormatters'),
             'omit_suffixes':args.omit_suffixes_after_morphological_preprocessing,
             'preprocess_func':  parse_morphologically,
-            'lowercase':args.do_lowercase
+            'lower_case':args.do_lower_case
         }
     elif args.do_ngram_preprocessing:
         params = {
             'ngram_size':args.ngram_size,
             'preprocess_func':from_sentence_to_character_ngram_sequence,
-            'lowercase': args.do_lowercase
+            'lower_case': args.do_lower_case
         }
     else:
         params = {
             'preprocess_func':parse_basically,
-            'lowercase': args.do_lowercase
+            'lower_case': args.do_lower_case
         }
 
     return params
@@ -177,8 +177,11 @@ def preprocess_examples(examples, args):
     print('-----------------------------------')
     print('Preprocessing new file')
     print('do_morphological_preprocessing:', args.do_morphological_preprocessing)
+    print('zemberek_path:', args.zemberek_path)
     print('omit_suffixes_after_morphological_preprocessing:', args.omit_suffixes_after_morphological_preprocessing)
     print('do_ngram_preprocessing:', args.do_ngram_preprocessing)
+    print('ngram_size:', args.ngram_size)
+    print('do_lower_case:', args.do_lower_case)
     print('-----------------------------------')
 
     params = get_preprocess_parameters(args)

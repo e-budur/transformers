@@ -576,9 +576,6 @@ def main():
     parser.add_argument("--do_ngram_preprocessing", default=False,
                         action="store_true", required=False,
                         help="Whether to preprocess the input file by using ngram sequence method.")
-    parser.add_argument("--do_lowercase", default=False,
-                        action="store_true", required=False,
-                        help="Whether to preprocess the input file by using ngram sequence method.")
     parser.add_argument("--ngram_size", default=None, type=int, required=False,
                         help="The size of ngram when do_ngram_preprocessing is True.")
 
