@@ -221,6 +221,10 @@ class MnliProcessor(DataProcessor):
         """See base class."""
         return self._create_examples(self._read_tsv(os.path.join(data_dir, "train.tsv")), "train")
 
+    def get_examples_by_split_name(self, data_dir, split_name):
+        """Gets a collection of `InputExample`s for the given split set."""
+        return self._create_examples(self._read_tsv(os.path.join(data_dir, split_name+".tsv")), split_name)
+
     def get_dev_examples(self, data_dir):
         """See base class."""
         # HACK:Since the implementation for testing the test set is not currently available yet in the framework,

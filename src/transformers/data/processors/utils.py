@@ -109,6 +109,10 @@ class DataProcessor(object):
         """Gets a collection of `InputExample`s for the dev set."""
         raise NotImplementedError()
 
+    def get_examples_by_split_name(self, data_dir, split_name):
+        """Gets a collection of `InputExample`s for the train set."""
+        raise NotImplementedError()
+
     def get_labels(self):
         """Gets the list of labels for this data set."""
         raise NotImplementedError()

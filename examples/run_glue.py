@@ -371,7 +371,7 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False):
     cached_features_file = os.path.join(
         args.data_dir,
         "cached_{}_{}_{}_{}".format(
-            "dev" if evaluate else "train",
+            args.eval_split_name if evaluate else "train",
             list(filter(None, args.model_name_or_path.split("/"))).pop(),
             str(args.max_seq_length),
             str(task),
@@ -386,8 +386,9 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False):
         if task in ["mnli", "mnli-mm"] and args.model_type in ["roberta", "xlmroberta"]:
             # HACK(label indices are swapped in RoBERTa pretrained model)
             label_list[1], label_list[2] = label_list[2], label_list[1]
+
         examples = (
-            processor.get_dev_examples(args.data_dir) if evaluate else processor.get_train_examples(args.data_dir)
+            processor.get_examples_by_split_name(args.data_dir, args.eval_split_name) if evaluate else processor.get_train_examples(args.data_dir)
         )
         preprocess_examples(examples, args)
         features = convert_examples_to_features(
@@ -419,8 +420,6 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False):
     dataset = TensorDataset(all_input_ids, all_attention_mask, all_token_type_ids, all_labels)
     return dataset
 
-
-def print_arguments()
 def main():
     parser = argparse.ArgumentParser()
 
@@ -555,6 +554,8 @@ def main():
     # additional arguments required for e-budur
     parser.add_argument('--evaluation_steps', type=int, default=0,
                         help="Log every X updates steps.")
+    parser.add_argument('--eval_split_name', type=str, default='dev',
+                        help="The name of the evaluation split.")
     parser.add_argument(
         "--dynamic_evaluation_step_regime", action="store_true", help="Apply dynamic evaluation regime.",
     )

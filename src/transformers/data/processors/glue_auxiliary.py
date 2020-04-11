@@ -46,8 +46,8 @@ class SnliProcessor(MnliProcessor):
         # HACK:Since the implementation for testing the test set is not currently available yet in the framework,
         # we used test dataset during the evaluation to see the performance of the model on the test set.
         return self._create_examples(
-            self._read_tsv(os.path.join(data_dir, "test.tsv")),
-            "test")
+            self._read_tsv(os.path.join(data_dir, "dev.tsv")),
+            "dev")
 
     def _create_examples(self, lines, set_type):
         """Creates examples for the training and dev sets."""
@@ -74,7 +74,7 @@ class XnliProcessor(MnliProcessor):
         # HACK:Since the implementation for testing the test set is not currently available yet in the framework,
         # we used test dataset during the evaluation to see the performance of the model on the test set.
         return self._create_dev_examples(
-            self._read_tsv(os.path.join(data_dir, "xnli.test.tsv")),
+            self._read_tsv(os.path.join(data_dir, "xnli.dev.tsv")),
             "test")
 
     def get_train_examples(self, data_dir):
@@ -104,9 +104,10 @@ class XnliProcessor(MnliProcessor):
 class MnliNMTProcessor(DataProcessor):
     """Processor for the MultiNLI-NMT as an auxiliary dataaset (GLUE version)."""
 
-    def __init__(self, train_filename, dev_filename):
+    def __init__(self, train_filename, dev_filename, split_filename_format):
         self.train_filename = train_filename
         self.dev_filename = dev_filename
+        self.split_filename_format = split_filename_format
 
 
     def get_dev_examples(self, data_dir):
@@ -120,6 +121,12 @@ class MnliNMTProcessor(DataProcessor):
         return self._create_examples_from_json(
             self._read_json(os.path.join(data_dir, self.train_filename)),
             "train")
+
+    def get_examples_by_split_name(self, data_dir, split_name):
+        """Gets a collection of `InputExample`s for the given split set."""
+        return self._create_examples_from_json(
+            self._read_json(os.path.join(data_dir, self.split_filename_format.format(split_name))),
+            split_name)
 
     def get_labels(self):
         """See base class."""
@@ -152,24 +159,24 @@ class MnliNMTProcessor(DataProcessor):
 class MnliNMTMatchedProcessor(MnliNMTProcessor):
     """Processor for the MultiNLI NMT Matched data set."""
     def __init__(self):
-        super().__init__('multinli_train_translation.json', 'multinli_dev_matched_translation.json')
+        super().__init__('multinli_train_translation.json', 'multinli_dev_matched_translation.json', 'multinli_{}_matched_translation.json')
 
 
 class MnliNMTMismatchedProcessor(MnliNMTProcessor):
     """Processor for the MultiNLI NMT Mismatched data set."""
     def __init__(self):
-        super().__init__('multinli_train_translation.json', 'multinli_dev_mismatched_translation.json')
+        super().__init__('multinli_train_translation.json', 'multinli_dev_mismatched_translation.json', 'multinli_{}_mismatched_translation.json')
 
 
 class SnliNMTProcessor(MnliNMTProcessor):
     """Processor for the SNLI NMT Matched data set."""
     def __init__(self):
-        super().__init__('snli_train_translation.json', 'snli_dev_translation.json')
+        super().__init__('snli_train_translation.json', 'snli_dev_translation.json', 'snli_{}_translation.json')
 
 class XnliNMTProcessor(MnliNMTProcessor):
     """Processor for the XNLI NMT Matched data set."""
     def __init__(self, lang='en'):
-        super().__init__('multinli_train_translation.json', 'xnli_dev_translation.json')
+        super().__init__('multinli_train_translation.json', 'xnli_dev_translation.json', 'xnli_{}_translation.json')
         self.lang=lang
 
     def get_dev_examples(self, data_dir):
@@ -182,7 +189,7 @@ class XnliNMTProcessor(MnliNMTProcessor):
         """See base class."""
         return self._create_test_examples_from_json(
             self._read_json(os.path.join(data_dir, self.dev_filename)),
-            "dev")
+            "test")
 
     def _create_test_examples_from_json(self, data, set_type):
         """Creates examples for the training and dev sets."""
