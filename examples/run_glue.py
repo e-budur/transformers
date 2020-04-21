@@ -568,7 +568,8 @@ def main():
     parser.add_argument("--do_morphological_preprocessing", default=False,
                         action="store_true", required=False,
                         help="Whether to preprocess the input file using a morphological parser.")
-
+    parser.add_argument("--morphological_parser_name", default='zemberek', type=str, required=True,
+                        help="The name of morphological parser.")
     parser.add_argument("--omit_suffixes_after_morphological_preprocessing", action="store_true",
                         required=False,
                         help="Whether to omit suffixes in the resulting tokens of a morphological parser.")

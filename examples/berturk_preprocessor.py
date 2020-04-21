@@ -6,6 +6,8 @@ from jpype import *
 import random
 from unicode_tr import unicode_tr
 import string
+from turkish_morphology import analysis_pb2, analyze, decompose
+
 def align_cases(input_word_form, parsed_word_form):
 
     input_word_form = unicode_tr(input_word_form)
@@ -41,7 +43,7 @@ def align_cases(input_word_form, parsed_word_form):
     return resulting_word
 
 
-def parse_morphologically(sentence, params):
+def parse_morphologically_zemberek(sentence, params):
     if sentence.strip() == u'':
        return sentence
 
@@ -65,6 +67,49 @@ def parse_morphologically(sentence, params):
       else:
         parsed_word = str(word_analysis.getInput())
       parsed_words.append(parsed_word)
+    parsed_sentence = ' '.join(parsed_words)
+    return parsed_sentence
+
+parse_morphologically_google_research_cache = {}
+total_num_words = 0
+cache_hit = 0
+
+def parse_morphologically_google_research(sentence, params):
+    global total_num_words
+    global cache_hit
+    #omit suffixes by default. need more implementation to append suffixes when needed
+    if sentence.strip() == u'':
+       return sentence
+    input_surface_words = sentence.split()
+
+    parsed_words = []
+
+    for input_surface_word in input_surface_words:
+        total_num_words += 1
+        if input_surface_word in parse_morphologically_google_research_cache:
+            parsed_word = parse_morphologically_google_research_cache[input_surface_word]
+            parsed_words.append(parsed_word)
+            cache_hit += 1
+            continue
+
+        word_analysis_results = analyze.surface_form(input_surface_word,
+                                                     analyzer=params['analyzer'],
+                                                     symbol_table=params['symbol_table'])
+        if len(word_analysis_results) > 0:
+            human_readables = word_analysis_results[0]
+            formatted_analysis = decompose.human_readable_analysis(human_readables)
+            parsed_word = formatted_analysis.ig[0].root.morpheme
+            #parsed_word = single_analysis.split('[')[0][1:]
+
+            parsed_word = align_cases(input_surface_word, parsed_word)
+            parsed_word = input_surface_word[0] + parsed_word[
+                                                  1:]  # try to make sure at least the title case structure of the input word is preserved
+        else:
+            parsed_word = input_surface_word
+
+        parse_morphologically_google_research_cache[input_surface_word] = parsed_word
+        parsed_words.append(parsed_word)
+
     parsed_sentence = ' '.join(parsed_words)
     return parsed_sentence
 
@@ -121,25 +166,30 @@ def from_sentence_to_character_ngram_sequence(sentence, params):
 
 def get_preprocess_parameters(args):
     if args.do_morphological_preprocessing:
-        if isJVMStarted() == False:
-            turn_on_morphological_analyzer(args)
-        params = {
-            'morphology': JClass('zemberek.morphology.TurkishMorphology').createWithDefaults(),
-            'AnalysisFormatters': JClass('zemberek.morphology.analysis.AnalysisFormatters'),
-            'omit_suffixes':args.omit_suffixes_after_morphological_preprocessing,
-            'preprocess_func':  parse_morphologically,
-            'lower_case':args.do_lower_case
-        }
+        if args.morphological_parser_name == 'zemberek':
+            if isJVMStarted() == False:
+                turn_on_morphological_analyzer(args)
+            params = {
+                'morphology': JClass('zemberek.morphology.TurkishMorphology').createWithDefaults(),
+                'AnalysisFormatters': JClass('zemberek.morphology.analysis.AnalysisFormatters'),
+                'omit_suffixes':args.omit_suffixes_after_morphological_preprocessing,
+                'preprocess_func':  parse_morphologically_zemberek
+            }
+        elif args.morphological_parser_name == 'google-research':
+            analyzer = analyze.get_analyzer()
+            symbol_table = analyzer.input_symbols()
+
+            params = {
+                'omit_suffixes': args.omit_suffixes_after_morphological_preprocessing,
+                'preprocess_func': parse_morphologically_google_research,
+                'analyzer': analyze.get_analyzer(),
+                'symbol_table':symbol_table
+            }
+
     elif args.do_ngram_preprocessing:
         params = {
             'ngram_size':args.ngram_size,
-            'preprocess_func':from_sentence_to_character_ngram_sequence,
-            'lower_case': args.do_lower_case
-        }
-    else:
-        params = {
-            'preprocess_func':parse_basically,
-            'lower_case': args.do_lower_case
+            'preprocess_func':from_sentence_to_character_ngram_sequence
         }
 
     return params
