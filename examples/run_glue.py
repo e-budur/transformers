@@ -368,12 +368,20 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False):
     processor = processors[task]()
     output_mode = output_modes[task]
     # Load data features from cache or dataset file
+    preprocessing_type = "default"
+
+    if args.do_morphological_preprocessing:
+        preprocessing_type = args.morphological_parser_name
+    elif args.do_ngram_preprocessing:
+        preprocessing_type = "ngram-"+str(args.ngram_size)
+
     cached_features_file = os.path.join(
         args.data_dir,
-        "cached_{}_{}_{}_{}".format(
+        "cached_{}_{}_{}_{}_{}".format(
             args.eval_split_name if evaluate else "train",
             list(filter(None, args.model_name_or_path.split("/"))).pop(),
             str(args.max_seq_length),
+            preprocessing_type,
             str(task),
         ),
     )
