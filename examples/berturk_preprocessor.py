@@ -227,6 +227,7 @@ def preprocess_examples(examples, args):
     print('-----------------------------------')
     print('Preprocessing new file')
     print('do_morphological_preprocessing:', args.do_morphological_preprocessing)
+    print('morphological_parser_name:', args.morphological_parser_name)
     print('zemberek_path:', args.zemberek_path)
     print('omit_suffixes_after_morphological_preprocessing:', args.omit_suffixes_after_morphological_preprocessing)
     print('do_ngram_preprocessing:', args.do_ngram_preprocessing)
