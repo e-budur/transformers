@@ -208,13 +208,16 @@ def preprocess_file(input_file_path, output_file_path, args):
     if params is None:
         return
 
+    num_lines = 0
     with codecs.open(input_file_path, mode='r', encoding='utf-8') as input_file:
       with codecs.open(output_file_path, mode='w', encoding='utf-8') as output_file:
         for input_line in input_file:
+          num_lines += 1
           input_line = input_line.strip()
           output_line = params['preprocess_func'](input_line, params)
           output_file.write(output_line+'\n')
-
+          if num_lines % 10000 == 0:
+              print('num_lines processed', num_lines)
           if random.random() < 0.01:  # print some examples of shuffles sentences
               print(u"\n{}\nOriginal line: {}\nProcessed line: {}\n{}\n ".format(
                     u"================================= PROCESSED EXAMPLE ===================================",
