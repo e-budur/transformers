@@ -242,7 +242,11 @@ def preprocess_examples(examples, args):
     if params is None:
         return
 
+    num_lines = 0
     for example in examples:
+        num_lines += 1
+        if num_lines % 10000 == 0:
+            print('num_lines processed', num_lines)
         processed_text_a = params['preprocess_func'](example.text_a, params)
         processed_text_b = params['preprocess_func'](example.text_b, params)
         if random.random() < 0.01:  # print some examples of shuffles sentences
