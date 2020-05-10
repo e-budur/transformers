@@ -374,6 +374,8 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False):
         preprocessing_type = args.morphological_parser_name
     elif args.do_ngram_preprocessing:
         preprocessing_type = "ngram-"+str(args.ngram_size)
+    elif args.do_sentencepiece_preprocessing:
+        preprocessing_type = "sentencepiece"
 
     cached_features_file = os.path.join(
         args.data_dir,
@@ -587,6 +589,12 @@ def main():
                         help="Whether to preprocess the input file by using ngram sequence method.")
     parser.add_argument("--ngram_size", default=None, type=int, required=False,
                         help="The size of ngram when do_ngram_preprocessing is True.")
+
+    parser.add_argument("--do_sentencepiece_preprocessing", default=False,
+                        action="store_true", required=False,
+                        help="Whether to preprocess the input file using the sentencepiece parser.")
+    parser.add_argument("--sp_model_path", default='spm.model', type=str, required=False,
+                        help="The path of sentencepiece model.")
 
     args = parser.parse_args()
     print(args)

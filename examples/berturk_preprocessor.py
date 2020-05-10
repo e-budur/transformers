@@ -7,6 +7,7 @@ import random
 from unicode_tr import unicode_tr
 import string
 from turkish_morphology import analysis_pb2, analyze, decompose
+import sentencepiece as spm
 
 def align_cases(input_word_form, parsed_word_form):
 
@@ -113,6 +114,13 @@ def parse_morphologically_google_research(sentence, params):
     parsed_sentence = ' '.join(parsed_words)
     return parsed_sentence
 
+def parse_sentencepiece(sentence, params):
+    if sentence.strip() == u'':
+        return sentence
+    sentence_pieces = params['sp_model'].EncodeAsPieces(sentence)
+    parsed_sentence = ' '.join(sentence_pieces)
+    return parsed_sentence
+
 def parse_basically(sentence, params):
     if sentence.strip() == u'':
        return sentence
@@ -191,6 +199,13 @@ def get_preprocess_parameters(args):
             'ngram_size':args.ngram_size,
             'preprocess_func':from_sentence_to_character_ngram_sequence
         }
+    elif args.do_sentencepiece_preprocessing:
+        sp = spm.SentencePieceProcessor()
+        sp.Load(args.sp_model_path)
+        params = {
+            'sp_model':sp,
+            'preprocess_func':parse_sentencepiece
+        }
 
     return params
 
@@ -236,6 +251,8 @@ def preprocess_examples(examples, args):
     print('do_ngram_preprocessing:', args.do_ngram_preprocessing)
     print('ngram_size:', args.ngram_size)
     print('do_lower_case:', args.do_lower_case)
+    print('do_sentencepiece_preprocessing:', args.do_sentencepiece_preprocessing)
+    print('sp_model_path:', args.sp_model_path)
     print('-----------------------------------')
 
     params = get_preprocess_parameters(args)
