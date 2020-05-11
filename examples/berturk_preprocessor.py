@@ -81,6 +81,10 @@ def parse_morphologically_google_research(sentence, params):
     #omit suffixes by default. need more implementation to append suffixes when needed
     if sentence.strip() == u'':
        return sentence
+
+    if params['lower_case']:
+        sentence = sentence.lower() # this line should be improved by using the lower method of unicode_tr library
+
     input_surface_words = sentence.split()
 
     parsed_words = []
@@ -117,6 +121,8 @@ def parse_morphologically_google_research(sentence, params):
 def parse_sentencepiece(sentence, params):
     if sentence.strip() == u'':
         return sentence
+    if params['lower_case']:
+        sentence = sentence.lower() # this line should be improved by using the lower method of unicode_tr library
     sentence_pieces = params['sp_model'].EncodeAsPieces(sentence)
     parsed_sentence = ' '.join(sentence_pieces)
     return parsed_sentence
@@ -182,7 +188,8 @@ def get_preprocess_parameters(args):
                 'morphology': JClass('zemberek.morphology.TurkishMorphology').createWithDefaults(),
                 'AnalysisFormatters': JClass('zemberek.morphology.analysis.AnalysisFormatters'),
                 'omit_suffixes':args.omit_suffixes_after_morphological_preprocessing,
-                'preprocess_func':  parse_morphologically_zemberek
+                'preprocess_func':  parse_morphologically_zemberek,
+                'lower_case':args.do_lower_case
             }
         elif args.morphological_parser_name == 'google-research':
             analyzer = analyze.get_analyzer()
@@ -192,20 +199,23 @@ def get_preprocess_parameters(args):
                 'omit_suffixes': args.omit_suffixes_after_morphological_preprocessing,
                 'preprocess_func': parse_morphologically_google_research,
                 'analyzer': analyze.get_analyzer(),
-                'symbol_table':symbol_table
+                'symbol_table':symbol_table,
+                'lower_case': args.do_lower_case
             }
 
     elif args.do_ngram_preprocessing:
         params = {
             'ngram_size':args.ngram_size,
-            'preprocess_func':from_sentence_to_character_ngram_sequence
+            'preprocess_func':from_sentence_to_character_ngram_sequence,
+            'lower_case': args.do_lower_case
         }
     elif args.do_sentencepiece_preprocessing:
         sp = spm.SentencePieceProcessor()
         sp.Load(args.sp_model_path)
         params = {
             'sp_model':sp,
-            'preprocess_func':parse_sentencepiece
+            'preprocess_func':parse_sentencepiece,
+            'lower_case': args.do_lower_case
         }
 
     return params
