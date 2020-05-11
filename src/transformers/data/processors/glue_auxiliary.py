@@ -100,6 +100,37 @@ class XnliProcessor(MnliProcessor):
         return examples
 
 
+class MnliFBNMTProcessor(XnliProcessor):
+    """Processor for the MultiNLI NMT Matched data set."""
+    def __init__(self):
+        super().__init__(lang='tr')
+        self.split_filename_format = 'xnli.{}.tsv'
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        return self._create_nmt_train_examples(
+            self._read_tsv(os.path.join(data_dir, "multinli.train.tr.tsv")), "train")
+
+    def get_examples_by_split_name(self, data_dir, split_name):
+        """Gets a collection of `InputExample`s for the given split set."""
+        return self._create_dev_examples(
+            self._read_tsv(os.path.join(data_dir, self.split_filename_format.format(split_name))),
+            split_name)
+
+    def _create_nmt_train_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+
+        for (i, line) in enumerate(lines):
+            if i == 0:
+                continue
+            guid = "%s-%s" % (set_type, str(i))
+            text_a = line[0]
+            text_b = line[1]
+            label = 'contradiction' if line[2] == 'contradictory' else line[2]
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+        return examples
+
 
 class MnliNMTProcessor(DataProcessor):
     """Processor for the MultiNLI-NMT as an auxiliary dataaset (GLUE version)."""
@@ -113,19 +144,19 @@ class MnliNMTProcessor(DataProcessor):
     def get_dev_examples(self, data_dir):
         """See base class."""
         return self._create_examples_from_json(
-            self._read_json(os.path.join(data_dir, self.dev_filename)),
+            self._read_tsv(os.path.join(data_dir, self.dev_filename)),
             "dev")
 
     def get_train_examples(self, data_dir):
         """See base class."""
         return self._create_examples_from_json(
-            self._read_json(os.path.join(data_dir, self.train_filename)),
+            self._read_tsv(os.path.join(data_dir, self.train_filename)),
             "train")
 
     def get_examples_by_split_name(self, data_dir, split_name):
         """Gets a collection of `InputExample`s for the given split set."""
         return self._create_examples_from_json(
-            self._read_json(os.path.join(data_dir, self.split_filename_format.format(split_name))),
+            self._read_tsv(os.path.join(data_dir, self.split_filename_format.format(split_name))),
             split_name)
 
     def get_labels(self):
@@ -166,6 +197,7 @@ class MnliNMTMismatchedProcessor(MnliNMTProcessor):
     """Processor for the MultiNLI NMT Mismatched data set."""
     def __init__(self):
         super().__init__('multinli_train_translation.json', 'multinli_dev_mismatched_translation.json', 'multinli_{}_mismatched_translation.json')
+
 
 
 class SnliNMTProcessor(MnliNMTProcessor):
@@ -221,3 +253,6 @@ processors['snli-nmt-amzn-tr'] = SnliNMTProcessor
 output_modes['snli-nmt-amzn-tr'] = "classification"
 processors['xnli-nmt-amzn-tr'] = XnliNMTProcessor
 output_modes['xnli-nmt-amzn-tr'] = "classification"
+processors['mnli-nmt-fb-tr'] = MnliFBNMTProcessor
+output_modes['mnli-nmt-fb-tr'] = "classification"
+
