@@ -143,7 +143,7 @@ if _has_sklearn:
             return pearson_and_spearman(preds, labels)
         elif task_name == "qqp":
             return acc_and_f1(preds, labels)
-        elif task_name == "mnli" or task_name == 'mnli-nmt-amzn-tr' or task_name == 'mnli-nmt-fb-tr':
+        elif task_name == "mnli" or task_name == 'mnli-nmt-amzn-tr' or task_name == 'mnli-nmt-amzn-tr-2' or task_name == 'mnli-nmt-fb-tr-2':
             return {"acc": simple_accuracy(preds, labels)}
         elif task_name == "mnli-mm" or task_name == 'mnli-mm-nmt-amzn-tr':
             return {"acc": simple_accuracy(preds, labels)}

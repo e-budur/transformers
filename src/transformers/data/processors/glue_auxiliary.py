@@ -100,7 +100,7 @@ class XnliProcessor(MnliProcessor):
         return examples
 
 
-class MnliFBNMTProcessor(XnliProcessor):
+class MnliNMTFB2Processor(XnliProcessor):
     """Processor for the MultiNLI NMT Matched data set."""
     def __init__(self):
         super().__init__(lang='tr')
@@ -132,6 +132,38 @@ class MnliFBNMTProcessor(XnliProcessor):
         return examples
 
 
+class MnliNMTAMZN2Processor(MnliNMTFB2Processor):
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        return self._create_examples_from_json(
+            self._read_json(os.path.join(data_dir, "multinli_train_translation.json")), "train")
+
+    def _create_examples_from_json(self, data, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for (i, data_item) in enumerate(data):
+            if i == 0:
+                continue
+            if data_item['gold_label'] == '-': #skip data_items with missing gold labels
+                continue
+            if i>100:
+                break
+            guid = "%s-%s" % (set_type, data_item['pairID'])
+            text_a = data_item['translate-sentence1']
+            text_b = data_item['translate-sentence2']
+            label = data_item['gold_label']
+            if label == '-': #skip data_items with missing gold labels
+                continue
+            examples.append(
+                InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+        return examples
+
+    def _read_json(cls, input_file, quotechar=None):
+        """Reads a tab separated value file."""
+        with codecs.open(input_file, encoding='utf-8') as json_file:
+            data = json.load(json_file)
+            return data
+
 class MnliNMTProcessor(DataProcessor):
     """Processor for the MultiNLI-NMT as an auxiliary dataaset (GLUE version)."""
 
@@ -150,13 +182,13 @@ class MnliNMTProcessor(DataProcessor):
     def get_train_examples(self, data_dir):
         """See base class."""
         return self._create_examples_from_json(
-            self._read_tsv(os.path.join(data_dir, self.train_filename)),
+            self._read_json(os.path.join(data_dir, self.train_filename)),
             "train")
 
     def get_examples_by_split_name(self, data_dir, split_name):
         """Gets a collection of `InputExample`s for the given split set."""
         return self._create_examples_from_json(
-            self._read_tsv(os.path.join(data_dir, self.split_filename_format.format(split_name))),
+            self._read_json(os.path.join(data_dir, self.split_filename_format.format(split_name))),
             split_name)
 
     def get_labels(self):
@@ -253,6 +285,8 @@ processors['snli-nmt-amzn-tr'] = SnliNMTProcessor
 output_modes['snli-nmt-amzn-tr'] = "classification"
 processors['xnli-nmt-amzn-tr'] = XnliNMTProcessor
 output_modes['xnli-nmt-amzn-tr'] = "classification"
-processors['mnli-nmt-fb-tr'] = MnliFBNMTProcessor
-output_modes['mnli-nmt-fb-tr'] = "classification"
+processors['mnli-nmt-fb-tr-2'] = MnliNMTFB2Processor
+output_modes['mnli-nmt-fb-tr-2'] = "classification"
+processors['mnli-nmt-amzn-tr-2'] = MnliNMTAMZN2Processor
+output_modes['mnli-nmt-amzn-tr-2'] = "classification"
 
