@@ -173,6 +173,7 @@ def from_sentence_to_character_ngram_sequence(sentence, params):
     return ' '.join(ngrams_of_tokens).strip()
 
 def get_preprocess_parameters(args):
+    params = None
     if args.do_morphological_preprocessing:
         if args.morphological_parser_name == 'zemberek':
             if isJVMStarted() == False:
