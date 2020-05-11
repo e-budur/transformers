@@ -146,8 +146,6 @@ class MnliNMTAMZN2Processor(MnliNMTFB2Processor):
                 continue
             if data_item['gold_label'] == '-': #skip data_items with missing gold labels
                 continue
-            if i>100:
-                break
             guid = "%s-%s" % (set_type, data_item['pairID'])
             text_a = data_item['translate-sentence1']
             text_b = data_item['translate-sentence2']
