@@ -6,7 +6,7 @@ from jpype import *
 import random
 from unicode_tr import unicode_tr
 import string
-from turkish_morphology import analysis_pb2, analyze, decompose
+#from turkish_morphology import analysis_pb2, analyze, decompose
 import sentencepiece as spm
 
 def align_cases(input_word_form, parsed_word_form):

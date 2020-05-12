@@ -174,7 +174,7 @@ class MnliNMTProcessor(DataProcessor):
     def get_dev_examples(self, data_dir):
         """See base class."""
         return self._create_examples_from_json(
-            self._read_tsv(os.path.join(data_dir, self.dev_filename)),
+            self._read_json(os.path.join(data_dir, self.dev_filename)),
             "dev")
 
     def get_train_examples(self, data_dir):

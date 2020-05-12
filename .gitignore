@@ -149,5 +149,6 @@ output
 outputs
 slurm_output
 slurm_outputs
+scripts/python
 scripts/slurm
 scripts/scratch
