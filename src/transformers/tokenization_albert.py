@@ -21,7 +21,7 @@ import unicodedata
 from shutil import copyfile
 
 from .tokenization_utils import PreTrainedTokenizer
-
+import random
 
 logger = logging.getLogger(__name__)
 VOCAB_FILES_NAMES = {"vocab_file": "spiece.model"}
@@ -147,9 +147,9 @@ class AlbertTokenizer(PreTrainedTokenizer):
 
         return outputs
 
-    def _tokenize(self, text, sample=False):
+    def _tokenize(self, input_text, sample=False):
         """ Tokenize a string. """
-        text = self.preprocess_text(text)
+        text = self.preprocess_text(input_text)
 
         if not sample:
             pieces = self.sp_model.EncodeAsPieces(text)
@@ -168,6 +168,15 @@ class AlbertTokenizer(PreTrainedTokenizer):
                 new_pieces.extend(cur_pieces)
             else:
                 new_pieces.append(piece)
+
+        # added by e-budur for logging some samples from the preprocessed inputs
+        if random.random() < 0.01:  # print some examples of the preprocessed sentences
+            print(u"\n{}\nOriginal line: {}\nProcessed line: {}\n{}\n ".format(
+                u"================================= SP PROCESSED EXAMPLE ===================================",
+                input_text.strip(),
+                ' '.join(new_pieces),
+                u"==========================================================================================")
+            )
 
         return new_pieces
 

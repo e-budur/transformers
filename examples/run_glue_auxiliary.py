@@ -34,5 +34,6 @@ logger = logging.getLogger(__name__)
 if __name__ == "__main__":
    run_glue.MODEL_CLASSES['bert-nlu'] = (BertNLUConfig, BertNLUForSequenceClassification, BertNLUTokenizer)
    run_glue.MODEL_CLASSES['bert-auto'] = (AutoConfig, BertForSequenceClassification, AutoTokenizer)
-
+   run_glue.MODEL_CLASSES['bert-auto-sentencepiece'] = (AutoConfig, BertForSequenceClassification, AutoTokenizer)
+   
    run_glue.main()
