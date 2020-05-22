@@ -160,12 +160,15 @@ def clean_morphologically_disambiguated_boun_from_file(input_file_path, output_f
     print('{} was completed'.format(executed_file_name))
 
 def parse_morphologically_boun(examples, params):
-    examples_file_path = os.path.join(params['data_dir'], 'boun_parser_raw_examples.txt')
+    examples_file_path = os.path.join(os.getcwd(), params['data_dir'], 'boun_parser_raw_examples.txt')
     dump_examples_to_file(examples, examples_file_path)
-    morphologically_parsed_examples_file_path = os.path.join(params['data_dir'], 'boun_parser_parsed_examples.txt')
+
+    morphologically_parsed_examples_file_path = os.path.join(os.getcwd(), params['data_dir'], 'boun_parser_parsed_examples.txt')
     morphologically_disambiguated_examples_file_path = os.path.join(params['data_dir'], 'boun_parser_disambiguated_examples.txt')
-    cleaned_examples_file_path = os.path.join(params['data_dir'], 'boun_parser_cleaned_examples.txt')
+
+    cleaned_examples_file_path = os.path.join(os.getcwd(), params['data_dir'], 'boun_parser_cleaned_examples.txt')
     boun_parser_dir = params['boun_parser_dir']
+    
     parse_morphologically_boun_from_file(examples_file_path, morphologically_parsed_examples_file_path, boun_parser_dir)
     disambiguate_morphologically_boun_from_file(morphologically_parsed_examples_file_path,
                                                 morphologically_disambiguated_examples_file_path,
