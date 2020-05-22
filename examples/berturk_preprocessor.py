@@ -8,7 +8,7 @@ from unicode_tr import unicode_tr
 import string
 from turkish_morphology import analysis_pb2, analyze, decompose
 import sentencepiece as spm
-from subprocess import call, Popen, PIPE, check_call, CalledProcessError
+from subprocess import call, Popen, PIPE, check_call, check_output, CalledProcessError
 import traceback
 def align_cases(input_word_form, parsed_word_form):
 
@@ -144,10 +144,9 @@ def parse_morphologically_boun_from_file(input_file_path, output_file_path, boun
     arguments = [boun_parser_python_path, os.path.join(boun_parser_dir, module_dir, executed_file_name), '"'+input_file_path+'"', '"'+output_file_path+'"']
     print('calling {}'.format(' '.join(arguments)))
     try:
-        check_call(arguments, stdout=PIPE, stderr=PIPE, cwd=os.path.join(boun_parser_dir, module_dir))
-    except CalledProcessError:
-        tb = traceback.format_exc()
-        print(tb)
+        output = check_output(arguments, stdout=PIPE, stderr=PIPE, cwd=os.path.join(boun_parser_dir, module_dir))
+    except CalledProcessError as e:
+        print(e.output)
         exit(1)
     print('{} was completed'.format(executed_file_name))
 
@@ -157,10 +156,9 @@ def disambiguate_morphologically_boun_from_file(input_file_path, output_file_pat
     arguments = ["perl", os.path.join(boun_parser_dir, module_dir, executed_file_name), "-disamb", "model.txt", '"'+input_file_path+'"', '"'+output_file_path+'"']
     print('calling {}'.format(' '.join(arguments)))
     try:
-        check_call(arguments, stdout=PIPE, stderr=PIPE, cwd=os.path.join(boun_parser_dir, module_dir))
-    except CalledProcessError:
-        tb = traceback.format_exc()
-        print(tb)
+        output = check_output(arguments, stdout=PIPE, stderr=PIPE, cwd=os.path.join(boun_parser_dir, module_dir))
+    except CalledProcessError as e:
+        print(e.output)
         exit(1)
     print('{} was completed'.format(executed_file_name))
 
@@ -170,10 +168,9 @@ def clean_morphologically_disambiguated_boun_from_file(input_file_path, output_f
     arguments = [boun_parser_python_path, os.path.join(boun_parser_dir, module_dir, executed_file_name), '"'+input_file_path+'"', '"'+output_file_path+'"']
     print('calling {}'.format(' '.join(arguments)))
     try:
-        check_call(arguments, stdout=PIPE, stderr=PIPE, cwd=os.path.join(boun_parser_dir, module_dir))
-    except CalledProcessError:
-        tb = traceback.format_exc()
-        print(tb)
+        output = check_output(arguments, stdout=PIPE, stderr=PIPE, cwd=os.path.join(boun_parser_dir, module_dir))
+    except CalledProcessError as e:
+        print(e.output)
         exit(1)
     print('{} was completed'.format(executed_file_name))
 
