@@ -145,6 +145,7 @@ def parse_morphologically_boun_from_file(input_file_path, output_file_path, boun
     print('calling {}'.format(' '.join(arguments)))
     try:
         output = check_output(arguments, stdout=PIPE, stderr=PIPE, cwd=os.path.join(boun_parser_dir, module_dir))
+        print(output)
     except CalledProcessError as e:
         print(e.output)
         exit(1)
@@ -157,6 +158,7 @@ def disambiguate_morphologically_boun_from_file(input_file_path, output_file_pat
     print('calling {}'.format(' '.join(arguments)))
     try:
         output = check_output(arguments, stdout=PIPE, stderr=PIPE, cwd=os.path.join(boun_parser_dir, module_dir))
+        print(output)
     except CalledProcessError as e:
         print(e.output)
         exit(1)
@@ -169,6 +171,7 @@ def clean_morphologically_disambiguated_boun_from_file(input_file_path, output_f
     print('calling {}'.format(' '.join(arguments)))
     try:
         output = check_output(arguments, stdout=PIPE, stderr=PIPE, cwd=os.path.join(boun_parser_dir, module_dir))
+        print(output)
     except CalledProcessError as e:
         print(e.output)
         exit(1)
