@@ -6,7 +6,7 @@ from jpype import *
 import random
 from unicode_tr import unicode_tr
 import string
-from turkish_morphology import analysis_pb2, analyze, decompose
+#from turkish_morphology import analysis_pb2, analyze, decompose
 import sentencepiece as spm
 from subprocess import call, Popen, PIPE, check_call, check_output, CalledProcessError
 import traceback
@@ -124,8 +124,9 @@ def dump_examples_to_file(examples, examples_file_path):
     with codecs.open(examples_file_path, mode='w', encoding='utf-8') as examples_file:
         for example in examples:
             num_lines += 1
-            if num_lines % 10000 == 0:
+            if num_lines % 100 == 0:
                 print('dump_examples_to_file num_lines processed', num_lines)
+                break
             examples_file.write(u'{}\n'.format(example.text_a))
             examples_file.write(u'{}\n'.format(example.text_b))
 
@@ -194,7 +195,7 @@ def parse_morphologically_boun(examples, params):
     dump_examples_to_file(examples, examples_file_path)
 
     morphologically_parsed_examples_file_path = os.path.join(os.getcwd(), params['data_dir'], 'boun_parser_parsed_examples.txt')
-    morphologically_disambiguated_examples_file_path = os.path.join(params['data_dir'], 'boun_parser_disambiguated_examples.txt')
+    morphologically_disambiguated_examples_file_path = os.path.join(os.getcwd(), pparams['data_dir'], 'boun_parser_disambiguated_examples.txt')
 
     cleaned_examples_file_path = os.path.join(os.getcwd(), params['data_dir'], 'boun_parser_cleaned_examples.txt')
     boun_parser_dir = params['boun_parser_dir']
