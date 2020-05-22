@@ -89,6 +89,7 @@ class PretrainedConfig(object):
         self.id2label = dict((int(key), value) for key, value in self.id2label.items())
         self.label2id = kwargs.pop("label2id", dict(zip(self.id2label.values(), self.id2label.keys())))
         self.label2id = dict((key, int(value)) for key, value in self.label2id.items())
+        self.tokenizer_type = kwargs.pop("tokenizer_type", None)
 
         # Additional attributes without default values
         for key, value in kwargs.items():

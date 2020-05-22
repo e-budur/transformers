@@ -177,8 +177,11 @@ class AutoTokenizer:
         if "bert-base-japanese" in pretrained_model_name_or_path:
             return BertJapaneseTokenizer.from_pretrained(pretrained_model_name_or_path, *inputs, **kwargs)
 
+
         for config_class, tokenizer_class in TOKENIZER_MAPPING.items():
-            if isinstance(config, config_class):
+            if config.tokenizer_type in tokenizer_class.__name__.lower():
+                return tokenizer_class.from_pretrained(pretrained_model_name_or_path, *inputs, **kwargs)
+            elif isinstance(config, config_class):
                 return tokenizer_class.from_pretrained(pretrained_model_name_or_path, *inputs, **kwargs)
 
         raise ValueError(
