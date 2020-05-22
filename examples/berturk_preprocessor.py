@@ -6,7 +6,7 @@ from jpype import *
 import random
 from unicode_tr import unicode_tr
 import string
-#from turkish_morphology import analysis_pb2, analyze, decompose
+from turkish_morphology import analysis_pb2, analyze, decompose
 import sentencepiece as spm
 from subprocess import call, Popen, PIPE, check_call, CalledProcessError
 import traceback
