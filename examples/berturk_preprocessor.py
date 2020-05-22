@@ -142,7 +142,6 @@ def parse_morphologically_boun_from_file(input_file_path, output_file_path, boun
     executed_file_name = 'parse_corpus.py'
     arguments = ["python", executed_file_name, input_file_path, output_file_path]
     print('calling {}'.format(' '.join(arguments)))
-    return
     call(arguments, cwd=os.path.join(boun_parser_dir, 'MP'))
     print('{} was completed'.format(executed_file_name))
 
@@ -150,7 +149,6 @@ def disambiguate_morphologically_boun_from_file(input_file_path, output_file_pat
     executed_file_name = 'md.pl'
     arguments = ["perl", executed_file_name, "-disamb", "model.txt", input_file_path, output_file_path]
     print('calling {}'.format(' '.join(arguments)))
-    return
     call(arguments, cwd=os.path.join(boun_parser_dir, 'MD-2.0'))
     print('{} was completed'.format(executed_file_name))
 
@@ -158,7 +156,6 @@ def clean_morphologically_disambiguated_boun_from_file(input_file_path, output_f
     executed_file_name = 'clean_corpus.py'
     arguments = ["python", executed_file_name, input_file_path, output_file_path]
     print('calling {}'.format(' '.join(arguments)))
-    return
     call(arguments, cwd=os.path.join(boun_parser_dir, 'CLEAN'))
     print('{} was completed'.format(executed_file_name))
 
