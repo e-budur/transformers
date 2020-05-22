@@ -124,9 +124,8 @@ def dump_examples_to_file(examples, examples_file_path):
     with codecs.open(examples_file_path, mode='w', encoding='utf-8') as examples_file:
         for example in examples:
             num_lines += 1
-            if num_lines % 100 == 0:
+            if num_lines % 10000 == 0:
                 print('dump_examples_to_file num_lines processed', num_lines)
-                break
             examples_file.write(u'{}\n'.format(example.text_a))
             examples_file.write(u'{}\n'.format(example.text_b))
 
