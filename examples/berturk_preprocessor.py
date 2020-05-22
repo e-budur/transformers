@@ -195,7 +195,7 @@ def parse_morphologically_boun(examples, params):
     dump_examples_to_file(examples, examples_file_path)
 
     morphologically_parsed_examples_file_path = os.path.join(os.getcwd(), params['data_dir'], 'boun_parser_parsed_examples.txt')
-    morphologically_disambiguated_examples_file_path = os.path.join(os.getcwd(), pparams['data_dir'], 'boun_parser_disambiguated_examples.txt')
+    morphologically_disambiguated_examples_file_path = os.path.join(os.getcwd(), params['data_dir'], 'boun_parser_disambiguated_examples.txt')
 
     cleaned_examples_file_path = os.path.join(os.getcwd(), params['data_dir'], 'boun_parser_cleaned_examples.txt')
     boun_parser_dir = params['boun_parser_dir']
