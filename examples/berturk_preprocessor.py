@@ -140,23 +140,26 @@ def load_examples_from_file(examples, examples_file_path):
 
 def parse_morphologically_boun_from_file(input_file_path, output_file_path, boun_parser_dir):
     executed_file_name = 'parse_corpus.py'
-    arguments = ["python", os.path.join(boun_parser_dir, executed_file_name), input_file_path, output_file_path]
+    module_dir = 'MP'
+    arguments = ["python", os.path.join(boun_parser_dir, module_dir, executed_file_name), input_file_path, output_file_path]
     print('calling {}'.format(' '.join(arguments)))
-    call(arguments, cwd=os.path.join(boun_parser_dir, 'MP'))
+    call(arguments, cwd=os.path.join(boun_parser_dir, module_dir))
     print('{} was completed'.format(executed_file_name))
 
 def disambiguate_morphologically_boun_from_file(input_file_path, output_file_path, boun_parser_dir):
     executed_file_name = 'md.pl'
-    arguments = ["perl", os.path.join(boun_parser_dir, executed_file_name), "-disamb", "model.txt", input_file_path, output_file_path]
+    module_dir = 'MD-2.0'
+    arguments = ["perl", os.path.join(boun_parser_dir, module_dir, executed_file_name), "-disamb", "model.txt", input_file_path, output_file_path]
     print('calling {}'.format(' '.join(arguments)))
-    call(arguments, cwd=os.path.join(boun_parser_dir, 'MD-2.0'))
+    call(arguments, cwd=os.path.join(boun_parser_dir, module_dir))
     print('{} was completed'.format(executed_file_name))
 
 def clean_morphologically_disambiguated_boun_from_file(input_file_path, output_file_path, boun_parser_dir):
     executed_file_name = 'clean_corpus.py'
-    arguments = ["python", os.path.join(boun_parser_dir, executed_file_name), input_file_path, output_file_path]
+    module_dir = 'CLEAN'
+    arguments = ["python", os.path.join(boun_parser_dir, module_dir, executed_file_name), input_file_path, output_file_path]
     print('calling {}'.format(' '.join(arguments)))
-    call(arguments, cwd=os.path.join(boun_parser_dir, 'CLEAN'))
+    call(arguments, cwd=os.path.join(boun_parser_dir, module_dir))
     print('{} was completed'.format(executed_file_name))
 
 def parse_morphologically_boun(examples, params):
