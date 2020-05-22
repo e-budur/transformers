@@ -144,8 +144,12 @@ def parse_morphologically_boun_from_file(input_file_path, output_file_path, boun
     arguments = [boun_parser_python_path, os.path.join(boun_parser_dir, module_dir, executed_file_name), '"'+input_file_path+'"', '"'+output_file_path+'"']
     print('calling {}'.format(' '.join(arguments)))
     try:
-        output = check_output(arguments, stdout=PIPE, stderr=PIPE, cwd=os.path.join(boun_parser_dir, module_dir))
+        process = Popen(arguments, stdout=PIPE, stderr=PIPE, cwd=os.path.join(boun_parser_dir, module_dir))
+        output, error = process.communicate()
+        print('output:')
         print(output)
+        print('error:')
+        print(error)
     except CalledProcessError as e:
         print(e.output)
         exit(1)
@@ -157,8 +161,12 @@ def disambiguate_morphologically_boun_from_file(input_file_path, output_file_pat
     arguments = ["perl", os.path.join(boun_parser_dir, module_dir, executed_file_name), "-disamb", "model.txt", '"'+input_file_path+'"', '"'+output_file_path+'"']
     print('calling {}'.format(' '.join(arguments)))
     try:
-        output = check_output(arguments, stdout=PIPE, stderr=PIPE, cwd=os.path.join(boun_parser_dir, module_dir))
+        process = Popen(arguments, stdout=PIPE, stderr=PIPE, cwd=os.path.join(boun_parser_dir, module_dir))
+        output, error = process.communicate()
+        print('output:')
         print(output)
+        print('error:')
+        print(error)
     except CalledProcessError as e:
         print(e.output)
         exit(1)
@@ -170,8 +178,12 @@ def clean_morphologically_disambiguated_boun_from_file(input_file_path, output_f
     arguments = [boun_parser_python_path, os.path.join(boun_parser_dir, module_dir, executed_file_name), '"'+input_file_path+'"', '"'+output_file_path+'"']
     print('calling {}'.format(' '.join(arguments)))
     try:
-        output = check_output(arguments, stdout=PIPE, stderr=PIPE, cwd=os.path.join(boun_parser_dir, module_dir))
+        process = Popen(arguments, stdout=PIPE, stderr=PIPE, cwd=os.path.join(boun_parser_dir, module_dir))
+        output, error = process.communicate()
+        print('output:')
         print(output)
+        print('error:')
+        print(error)
     except CalledProcessError as e:
         print(e.output)
         exit(1)
