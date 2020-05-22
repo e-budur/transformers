@@ -141,15 +141,15 @@ def load_examples_from_file(examples, examples_file_path):
 def parse_morphologically_boun_from_file(input_file_path, output_file_path, boun_parser_dir, boun_parser_python_path):
     executed_file_name = 'parse_corpus.py'
     module_dir = 'MP'
-    arguments = [boun_parser_python_path, os.path.join(boun_parser_dir, module_dir, executed_file_name), '"'+input_file_path+'"', '"'+output_file_path+'"']
+    arguments = [boun_parser_python_path, os.path.join(boun_parser_dir, module_dir, executed_file_name), input_file_path, output_file_path]
     print('calling {}'.format(' '.join(arguments)))
     try:
         process = Popen(arguments, stdout=PIPE, stderr=PIPE, cwd=os.path.join(boun_parser_dir, module_dir))
         output, error = process.communicate()
         print('output:')
-        print(output)
+        print(output.decode('utf-8'))
         print('error:')
-        print(error)
+        print(error.decode('utf-8'))
     except CalledProcessError as e:
         print(e.output)
         exit(1)
@@ -158,15 +158,15 @@ def parse_morphologically_boun_from_file(input_file_path, output_file_path, boun
 def disambiguate_morphologically_boun_from_file(input_file_path, output_file_path, boun_parser_dir):
     executed_file_name = 'md.pl'
     module_dir = 'MD-2.0'
-    arguments = ["perl", os.path.join(boun_parser_dir, module_dir, executed_file_name), "-disamb", "model.txt", '"'+input_file_path+'"', '"'+output_file_path+'"']
+    arguments = ["perl", os.path.join(boun_parser_dir, module_dir, executed_file_name), "-disamb", "model.txt", input_file_path, output_file_path]
     print('calling {}'.format(' '.join(arguments)))
     try:
         process = Popen(arguments, stdout=PIPE, stderr=PIPE, cwd=os.path.join(boun_parser_dir, module_dir))
         output, error = process.communicate()
         print('output:')
-        print(output)
+        print(output.decode('utf-8'))
         print('error:')
-        print(error)
+        print(error.decode('utf-8'))
     except CalledProcessError as e:
         print(e.output)
         exit(1)
@@ -175,15 +175,15 @@ def disambiguate_morphologically_boun_from_file(input_file_path, output_file_pat
 def clean_morphologically_disambiguated_boun_from_file(input_file_path, output_file_path, boun_parser_dir, boun_parser_python_path):
     executed_file_name = 'clean_corpus.py'
     module_dir = 'CLEAN'
-    arguments = [boun_parser_python_path, os.path.join(boun_parser_dir, module_dir, executed_file_name), '"'+input_file_path+'"', '"'+output_file_path+'"']
+    arguments = [boun_parser_python_path, os.path.join(boun_parser_dir, module_dir, executed_file_name), input_file_path, output_file_path]
     print('calling {}'.format(' '.join(arguments)))
     try:
         process = Popen(arguments, stdout=PIPE, stderr=PIPE, cwd=os.path.join(boun_parser_dir, module_dir))
         output, error = process.communicate()
         print('output:')
-        print(output)
+        print(output.decode('utf-8'))
         print('error:')
-        print(error)
+        print(error.decode('utf-8'))
     except CalledProcessError as e:
         print(e.output)
         exit(1)
