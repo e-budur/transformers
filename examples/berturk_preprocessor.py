@@ -140,21 +140,21 @@ def load_examples_from_file(examples, examples_file_path):
 
 def parse_morphologically_boun_from_file(input_file_path, output_file_path, boun_parser_dir):
     executed_file_name = 'parse_corpus.py'
-    arguments = ["python", executed_file_name, input_file_path, output_file_path]
+    arguments = ["python", os.path.join(boun_parser_dir, executed_file_name), input_file_path, output_file_path]
     print('calling {}'.format(' '.join(arguments)))
     call(arguments, cwd=os.path.join(boun_parser_dir, 'MP'))
     print('{} was completed'.format(executed_file_name))
 
 def disambiguate_morphologically_boun_from_file(input_file_path, output_file_path, boun_parser_dir):
     executed_file_name = 'md.pl'
-    arguments = ["perl", executed_file_name, "-disamb", "model.txt", input_file_path, output_file_path]
+    arguments = ["perl", os.path.join(boun_parser_dir, executed_file_name), "-disamb", "model.txt", input_file_path, output_file_path]
     print('calling {}'.format(' '.join(arguments)))
     call(arguments, cwd=os.path.join(boun_parser_dir, 'MD-2.0'))
     print('{} was completed'.format(executed_file_name))
 
 def clean_morphologically_disambiguated_boun_from_file(input_file_path, output_file_path, boun_parser_dir):
     executed_file_name = 'clean_corpus.py'
-    arguments = ["python", executed_file_name, input_file_path, output_file_path]
+    arguments = ["python", os.path.join(boun_parser_dir, executed_file_name), input_file_path, output_file_path]
     print('calling {}'.format(' '.join(arguments)))
     call(arguments, cwd=os.path.join(boun_parser_dir, 'CLEAN'))
     print('{} was completed'.format(executed_file_name))
@@ -168,7 +168,7 @@ def parse_morphologically_boun(examples, params):
 
     cleaned_examples_file_path = os.path.join(os.getcwd(), params['data_dir'], 'boun_parser_cleaned_examples.txt')
     boun_parser_dir = params['boun_parser_dir']
-    
+
     parse_morphologically_boun_from_file(examples_file_path, morphologically_parsed_examples_file_path, boun_parser_dir)
     disambiguate_morphologically_boun_from_file(morphologically_parsed_examples_file_path,
                                                 morphologically_disambiguated_examples_file_path,
