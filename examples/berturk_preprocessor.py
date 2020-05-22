@@ -305,6 +305,7 @@ def preprocess_examples(examples, args):
     print('do_lower_case:', args.do_lower_case)
     print('do_sentencepiece_preprocessing:', args.do_sentencepiece_preprocessing)
     print('sp_model_path:', args.sp_model_path)
+    print('boun_parser_dir:', args.boun_parser_dir)
     print('-----------------------------------')
 
     params = get_preprocess_parameters(args)

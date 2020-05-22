@@ -583,6 +583,8 @@ def main():
     parser.add_argument("--omit_suffixes_after_morphological_preprocessing", action="store_true",
                         required=False,
                         help="Whether to omit suffixes in the resulting tokens of a morphological parser.")
+    parser.add_argument("--boun_parser_dir", default=None, type=str, required=False,
+                        help="The path of boun parser.")
 
     parser.add_argument("--do_ngram_preprocessing", default=False,
                         action="store_true", required=False,
