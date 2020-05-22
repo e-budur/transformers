@@ -151,6 +151,7 @@ def parse_morphologically_boun_from_file(input_file_path, output_file_path, boun
         print('error:')
         print(error.decode('utf-8'))
     except CalledProcessError as e:
+        print('exception in parse_morphologically_boun_from_file')
         print(e.output)
         exit(1)
     print('{} was completed'.format(executed_file_name))
@@ -168,6 +169,7 @@ def disambiguate_morphologically_boun_from_file(input_file_path, output_file_pat
         print('error:')
         print(error.decode('utf-8'))
     except CalledProcessError as e:
+        print('exception in disambiguate_morphologically_boun_from_file')
         print(e.output)
         exit(1)
     print('{} was completed'.format(executed_file_name))
@@ -185,6 +187,7 @@ def clean_morphologically_disambiguated_boun_from_file(input_file_path, output_f
         print('error:')
         print(error.decode('utf-8'))
     except CalledProcessError as e:
+        print('exception in clean_morphologically_disambiguated_boun_from_file')
         print(e.output)
         exit(1)
     print('{} was completed'.format(executed_file_name))
