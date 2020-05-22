@@ -138,10 +138,10 @@ def load_examples_from_file(examples, examples_file_path):
             else:
                 examples[line_index].text_b = line
 
-def parse_morphologically_boun_from_file(input_file_path, output_file_path, boun_parser_dir):
+def parse_morphologically_boun_from_file(input_file_path, output_file_path, boun_parser_dir, boun_parser_python_path):
     executed_file_name = 'parse_corpus.py'
     module_dir = 'MP'
-    arguments = ["python", os.path.join(boun_parser_dir, module_dir, executed_file_name), input_file_path, output_file_path]
+    arguments = [boun_parser_python_path, os.path.join(boun_parser_dir, module_dir, executed_file_name), '"'+input_file_path+'"', '"'+output_file_path+'"']
     print('calling {}'.format(' '.join(arguments)))
     call(arguments, stdout=PIPE, stderr=PIPE, cwd=os.path.join(boun_parser_dir, module_dir))
     print('{} was completed'.format(executed_file_name))
@@ -149,15 +149,15 @@ def parse_morphologically_boun_from_file(input_file_path, output_file_path, boun
 def disambiguate_morphologically_boun_from_file(input_file_path, output_file_path, boun_parser_dir):
     executed_file_name = 'md.pl'
     module_dir = 'MD-2.0'
-    arguments = ["perl", os.path.join(boun_parser_dir, module_dir, executed_file_name), "-disamb", "model.txt", input_file_path, output_file_path]
+    arguments = ["perl", os.path.join(boun_parser_dir, module_dir, executed_file_name), "-disamb", "model.txt", '"'+input_file_path+'"', '"'+output_file_path+'"']
     print('calling {}'.format(' '.join(arguments)))
     call(arguments, stdout=PIPE, stderr=PIPE, cwd=os.path.join(boun_parser_dir, module_dir))
     print('{} was completed'.format(executed_file_name))
 
-def clean_morphologically_disambiguated_boun_from_file(input_file_path, output_file_path, boun_parser_dir):
+def clean_morphologically_disambiguated_boun_from_file(input_file_path, output_file_path, boun_parser_dir, boun_parser_python_path):
     executed_file_name = 'clean_corpus.py'
     module_dir = 'CLEAN'
-    arguments = ["python", os.path.join(boun_parser_dir, module_dir, executed_file_name), input_file_path, output_file_path]
+    arguments = [boun_parser_python_path, os.path.join(boun_parser_dir, module_dir, executed_file_name), '"'+input_file_path+'"', '"'+output_file_path+'"']
     print('calling {}'.format(' '.join(arguments)))
     call(arguments, stdout=PIPE, stderr=PIPE, cwd=os.path.join(boun_parser_dir, module_dir))
     print('{} was completed'.format(executed_file_name))
@@ -171,14 +171,14 @@ def parse_morphologically_boun(examples, params):
 
     cleaned_examples_file_path = os.path.join(os.getcwd(), params['data_dir'], 'boun_parser_cleaned_examples.txt')
     boun_parser_dir = params['boun_parser_dir']
-
-    parse_morphologically_boun_from_file(examples_file_path, morphologically_parsed_examples_file_path, boun_parser_dir)
+    boun_parser_python_path = params['boun_parser_python_path']
+    parse_morphologically_boun_from_file(examples_file_path, morphologically_parsed_examples_file_path, boun_parser_dir, boun_parser_python_path)
     disambiguate_morphologically_boun_from_file(morphologically_parsed_examples_file_path,
                                                 morphologically_disambiguated_examples_file_path,
                                                 boun_parser_dir)
     clean_morphologically_disambiguated_boun_from_file(morphologically_disambiguated_examples_file_path,
                                                        cleaned_examples_file_path,
-                                                       boun_parser_dir)
+                                                       boun_parser_dir, boun_parser_python_path)
 
     load_examples_from_file(examples, cleaned_examples_file_path)
 
@@ -276,7 +276,8 @@ def get_preprocess_parameters(args):
                 'lower_case': args.do_lower_case,
                 'parse_batchwise': True,
                 'data_dir': args.data_dir,
-                'boun_parser_dir':args.boun_parser_dir
+                'boun_parser_dir':args.boun_parser_dir,
+                'boun_parser_python_path': args.boun_parser_python_path
             }
 
     elif args.do_ngram_preprocessing:
@@ -309,6 +310,7 @@ def preprocess_examples(examples, args):
     print('do_sentencepiece_preprocessing:', args.do_sentencepiece_preprocessing)
     print('sp_model_path:', args.sp_model_path)
     print('boun_parser_dir:', args.boun_parser_dir)
+    print('boun_parser_python_path:', args.boun_parser_python_path)
     print('-----------------------------------')
 
     params = get_preprocess_parameters(args)
