@@ -8,6 +8,7 @@ from unicode_tr import unicode_tr
 import string
 from turkish_morphology import analysis_pb2, analyze, decompose
 import sentencepiece as spm
+from subprocess import call
 
 def align_cases(input_word_form, parsed_word_form):
 
@@ -118,6 +119,66 @@ def parse_morphologically_google_research(sentence, params):
     parsed_sentence = ' '.join(parsed_words)
     return parsed_sentence
 
+def dump_examples_to_file(examples, examples_file_path):
+    num_lines = 0
+    with codecs.open(examples_file_path, mode='w', encoding='utf-8') as examples_file:
+        for example in examples:
+            num_lines += 1
+            if num_lines % 10000 == 0:
+                print('dump_examples_to_file num_lines processed', num_lines)
+            examples_file.write(u'{}\n'.format(example.text_a))
+            examples_file.write(u'{}\n'.format(example.text_b))
+
+def load_examples_from_file(examples, examples_file_path):
+    line_index = 0
+    with codecs.open(examples_file_path, mode='r', encoding='utf-8') as examples_file:
+        for line in examples_file:
+            if line_index %2 == 0:
+                examples[line_index].text_a = line
+            else:
+                examples[line_index].text_b = line
+
+def parse_morphologically_boun_from_file(input_file_path, output_file_path, boun_parser_dir):
+    executed_file_name = 'parse_corpus.py'
+    arguments = ["python", executed_file_name, input_file_path, output_file_path]
+    print('calling {}'.format(' '.join(arguments)))
+    return
+    call(arguments, cwd=os.path.join(boun_parser_dir, 'MP'))
+    print('{} was completed'.format(executed_file_name))
+
+def disambiguate_morphologically_boun_from_file(input_file_path, output_file_path, boun_parser_dir):
+    executed_file_name = 'md.pl'
+    arguments = ["perl", executed_file_name, "-disamb", "model.txt", input_file_path, output_file_path]
+    print('calling {}'.format(' '.join(arguments)))
+    return
+    call(arguments, cwd=os.path.join(boun_parser_dir, 'MD-2.0'))
+    print('{} was completed'.format(executed_file_name))
+
+def clean_morphologically_disambiguated_boun_from_file(input_file_path, output_file_path, boun_parser_dir):
+    executed_file_name = 'clean_corpus.py'
+    arguments = ["python", executed_file_name, input_file_path, output_file_path]
+    print('calling {}'.format(' '.join(arguments)))
+    return
+    call(arguments, cwd=os.path.join(boun_parser_dir, 'CLEAN'))
+    print('{} was completed'.format(executed_file_name))
+
+def parse_morphologically_boun(examples, params):
+    examples_file_path = os.path.join(params['data_dir'], 'boun_parser_raw_examples.txt')
+    dump_examples_to_file(examples, examples_file_path)
+    morphologically_parsed_examples_file_path = os.path.join(params['data_dir'], 'boun_parser_parsed_examples.txt')
+    morphologically_disambiguated_examples_file_path = os.path.join(params['data_dir'], 'boun_parser_disambiguated_examples.txt')
+    cleaned_examples_file_path = os.path.join(params['data_dir'], 'boun_parser_cleaned_examples.txt')
+    boun_parser_dir = params['boun_parser_dir']
+    parse_morphologically_boun_from_file(examples_file_path, morphologically_parsed_examples_file_path, boun_parser_dir)
+    disambiguate_morphologically_boun_from_file(morphologically_parsed_examples_file_path,
+                                                morphologically_disambiguated_examples_file_path,
+                                                boun_parser_dir)
+    clean_morphologically_disambiguated_boun_from_file(morphologically_disambiguated_examples_file_path,
+                                                       cleaned_examples_file_path,
+                                                       boun_parser_dir)
+
+    load_examples_from_file(examples, cleaned_examples_file_path)
+
 def parse_sentencepiece(sentence, params):
     if sentence.strip() == u'':
         return sentence
@@ -189,7 +250,8 @@ def get_preprocess_parameters(args):
                 'AnalysisFormatters': JClass('zemberek.morphology.analysis.AnalysisFormatters'),
                 'omit_suffixes':args.omit_suffixes_after_morphological_preprocessing,
                 'preprocess_func':  parse_morphologically_zemberek,
-                'lower_case':args.do_lower_case
+                'lower_case':args.do_lower_case,
+                'parse_batchwise': False
             }
         elif args.morphological_parser_name == 'google-research':
             analyzer = analyze.get_analyzer()
@@ -200,7 +262,18 @@ def get_preprocess_parameters(args):
                 'preprocess_func': parse_morphologically_google_research,
                 'analyzer': analyze.get_analyzer(),
                 'symbol_table':symbol_table,
-                'lower_case': args.do_lower_case
+                'lower_case': args.do_lower_case,
+                'parse_batchwise': False
+            }
+
+        elif args.morphological_parser_name == 'boun':
+            params = {
+                'omit_suffixes': args.omit_suffixes_after_morphological_preprocessing,
+                'preprocess_func': parse_morphologically_boun,
+                'lower_case': args.do_lower_case,
+                'parse_batchwise': True,
+                'data_dir': args.data_dir,
+                'boun_parser_dir':args.boun_parser_dir
             }
 
     elif args.do_ngram_preprocessing:
@@ -220,38 +293,6 @@ def get_preprocess_parameters(args):
 
     return params
 
-def preprocess_file(input_file_path, output_file_path, args):
-    print('-----------------------------------')
-    print('Preprocessing new file')
-    print('Input file:', input_file_path)
-    print('Output file:', output_file_path)
-    print('do_morphological_preprocessing:', args.do_morphological_preprocessing)
-    print('omit_suffixes_after_morphological_preprocessing:', args.omit_suffixes_after_morphological_preprocessing)
-    print('do_ngram_preprocessing:', args.do_ngram_preprocessing)
-    print('-----------------------------------')
-
-    params = get_preprocess_parameters(args)
-    if params is None:
-        return
-
-    num_lines = 0
-    with codecs.open(input_file_path, mode='r', encoding='utf-8') as input_file:
-      with codecs.open(output_file_path, mode='w', encoding='utf-8') as output_file:
-        for input_line in input_file:
-          num_lines += 1
-          input_line = input_line.strip()
-          output_line = params['preprocess_func'](input_line, params)
-          output_file.write(output_line+'\n')
-          if num_lines % 10000 == 0:
-              print('num_lines processed', num_lines)
-          if random.random() < 0.01:  # print some examples of shuffles sentences
-              print(u"\n{}\nOriginal line: {}\nProcessed line: {}\n{}\n ".format(
-                    u"================================= PROCESSED EXAMPLE ===================================",
-                    input_line.strip(),
-                    output_line.strip(),
-                    u"=======================================================================================")
-              )
-
 def preprocess_examples(examples, args):
     print('-----------------------------------')
     print('Preprocessing new file')
@@ -269,25 +310,27 @@ def preprocess_examples(examples, args):
     params = get_preprocess_parameters(args)
     if params is None:
         return
-
-    num_lines = 0
-    for example in examples:
-        num_lines += 1
-        if num_lines % 10000 == 0:
-            print('num_lines processed', num_lines)
-        processed_text_a = params['preprocess_func'](example.text_a, params)
-        processed_text_b = params['preprocess_func'](example.text_b, params)
-        if random.random() < 0.01:  # print some examples of shuffles sentences
-            print(u"\n{}\nOriginal line (text a): {}\nProcessed line (text a): {}\nOriginal line (text b): {}\nProcessed line (text b):{}\n{}\n ".format(
-                u"================================= PROCESSED EXAMPLE ===================================",
-                example.text_a.strip(),
-                processed_text_a.strip(),
-                example.text_b.strip(),
-                processed_text_b.strip(),
-                u"=======================================================================================")
-            )
-        example.text_a = processed_text_a
-        example.text_b = processed_text_b
+    if 'parse_batchwise' in params and params['parse_batchwise'] == True:
+        params['preprocess_func'](examples, params)
+    else:
+        num_lines = 0
+        for example in examples:
+            num_lines += 1
+            if num_lines % 10000 == 0:
+                print('num_lines processed', num_lines)
+            processed_text_a = params['preprocess_func'](example.text_a, params)
+            processed_text_b = params['preprocess_func'](example.text_b, params)
+            if random.random() < 0.01:  # print some examples of shuffles sentences
+                print(u"\n{}\nOriginal line (text a): {}\nProcessed line (text a): {}\nOriginal line (text b): {}\nProcessed line (text b):{}\n{}\n ".format(
+                    u"================================= PROCESSED EXAMPLE ===================================",
+                    example.text_a.strip(),
+                    processed_text_a.strip(),
+                    example.text_b.strip(),
+                    processed_text_b.strip(),
+                    u"=======================================================================================")
+                )
+            example.text_a = processed_text_a
+            example.text_b = processed_text_b
 def turn_on_morphological_analyzer(args):
     if args.java_home_path is not None:
         os.environ['JAVA_HOME_PATH'] = args.java_home_path
