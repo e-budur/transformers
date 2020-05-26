@@ -22,25 +22,24 @@ import torch
 import torch.nn as nn
 from torch.nn import CrossEntropyLoss, MSELoss
 
-from transformers.configuration_albert import AlbertConfig
-from transformers.modeling_bert import ACT2FN, BertEmbeddings, BertSelfAttention, prune_linear_layer
-from transformers.modeling_utils import PreTrainedModel
-
+from .configuration_albert import AlbertConfig
 from .file_utils import add_start_docstrings, add_start_docstrings_to_callable
+from .modeling_bert import ACT2FN, BertEmbeddings, BertSelfAttention, prune_linear_layer
+from .modeling_utils import PreTrainedModel
 
 
 logger = logging.getLogger(__name__)
 
 
 ALBERT_PRETRAINED_MODEL_ARCHIVE_MAP = {
-    "albert-base-v1": "https://s3.amazonaws.com/models.huggingface.co/bert/albert-base-pytorch_model.bin",
-    "albert-large-v1": "https://s3.amazonaws.com/models.huggingface.co/bert/albert-large-pytorch_model.bin",
-    "albert-xlarge-v1": "https://s3.amazonaws.com/models.huggingface.co/bert/albert-xlarge-pytorch_model.bin",
-    "albert-xxlarge-v1": "https://s3.amazonaws.com/models.huggingface.co/bert/albert-xxlarge-pytorch_model.bin",
-    "albert-base-v2": "https://s3.amazonaws.com/models.huggingface.co/bert/albert-base-v2-pytorch_model.bin",
-    "albert-large-v2": "https://s3.amazonaws.com/models.huggingface.co/bert/albert-large-v2-pytorch_model.bin",
-    "albert-xlarge-v2": "https://s3.amazonaws.com/models.huggingface.co/bert/albert-xlarge-v2-pytorch_model.bin",
-    "albert-xxlarge-v2": "https://s3.amazonaws.com/models.huggingface.co/bert/albert-xxlarge-v2-pytorch_model.bin",
+    "albert-base-v1": "https://cdn.huggingface.co/albert-base-v1-pytorch_model.bin",
+    "albert-large-v1": "https://cdn.huggingface.co/albert-large-v1-pytorch_model.bin",
+    "albert-xlarge-v1": "https://cdn.huggingface.co/albert-xlarge-v1-pytorch_model.bin",
+    "albert-xxlarge-v1": "https://cdn.huggingface.co/albert-xxlarge-v1-pytorch_model.bin",
+    "albert-base-v2": "https://cdn.huggingface.co/albert-base-v2-pytorch_model.bin",
+    "albert-large-v2": "https://cdn.huggingface.co/albert-large-v2-pytorch_model.bin",
+    "albert-xlarge-v2": "https://cdn.huggingface.co/albert-xlarge-v2-pytorch_model.bin",
+    "albert-xxlarge-v2": "https://cdn.huggingface.co/albert-xxlarge-v2-pytorch_model.bin",
 }
 
 
@@ -112,7 +111,8 @@ def load_tf_weights_in_albert(model, config, tf_checkpoint_path):
 
         # No ALBERT model currently handles the next sentence prediction task
         if "seq_relationship" in name:
-            continue
+            name = name.replace("seq_relationship/output_", "sop_classifier/classifier/")
+            name = name.replace("weights", "weight")
 
         name = name.split("/")
 
@@ -175,7 +175,7 @@ class AlbertEmbeddings(BertEmbeddings):
     def __init__(self, config):
         super().__init__(config)
 
-        self.word_embeddings = nn.Embedding(config.vocab_size, config.embedding_size, padding_idx=0)
+        self.word_embeddings = nn.Embedding(config.vocab_size, config.embedding_size, padding_idx=config.pad_token_id)
         self.position_embeddings = nn.Embedding(config.max_position_embeddings, config.embedding_size)
         self.token_type_embeddings = nn.Embedding(config.type_vocab_size, config.embedding_size)
         self.LayerNorm = torch.nn.LayerNorm(config.embedding_size, eps=config.layer_norm_eps)
@@ -550,21 +550,9 @@ class AlbertModel(AlbertPreTrainedModel):
             token_type_ids = torch.zeros(input_shape, dtype=torch.long, device=device)
 
         extended_attention_mask = attention_mask.unsqueeze(1).unsqueeze(2)
-        extended_attention_mask = extended_attention_mask.to(dtype=next(self.parameters()).dtype)  # fp16 compatibility
+        extended_attention_mask = extended_attention_mask.to(dtype=self.dtype)  # fp16 compatibility
         extended_attention_mask = (1.0 - extended_attention_mask) * -10000.0
-        if head_mask is not None:
-            if head_mask.dim() == 1:
-                head_mask = head_mask.unsqueeze(0).unsqueeze(0).unsqueeze(-1).unsqueeze(-1)
-                head_mask = head_mask.expand(self.config.num_hidden_layers, -1, -1, -1, -1)
-            elif head_mask.dim() == 2:
-                head_mask = (
-                    head_mask.unsqueeze(1).unsqueeze(-1).unsqueeze(-1)
-                )  # We can specify head_mask for each layer
-            head_mask = head_mask.to(
-                dtype=next(self.parameters()).dtype
-            )  # switch to fload if need + fp16 compatibility
-        else:
-            head_mask = [None] * self.config.num_hidden_layers
+        head_mask = self.get_head_mask(head_mask, self.config.num_hidden_layers)
 
         embedding_output = self.embeddings(
             input_ids, position_ids=position_ids, token_type_ids=token_type_ids, inputs_embeds=inputs_embeds
@@ -579,6 +567,115 @@ class AlbertModel(AlbertPreTrainedModel):
             1:
         ]  # add hidden_states and attentions if they are here
         return outputs
+
+
+@add_start_docstrings(
+    """Albert Model with two heads on top as done during the pre-training: a `masked language modeling` head and
+    a `sentence order prediction (classification)` head. """,
+    ALBERT_START_DOCSTRING,
+)
+class AlbertForPreTraining(AlbertPreTrainedModel):
+    def __init__(self, config):
+        super().__init__(config)
+
+        self.albert = AlbertModel(config)
+        self.predictions = AlbertMLMHead(config)
+        self.sop_classifier = AlbertSOPHead(config)
+
+        self.init_weights()
+        self.tie_weights()
+
+    def tie_weights(self):
+        self._tie_or_clone_weights(self.predictions.decoder, self.albert.embeddings.word_embeddings)
+
+    def get_output_embeddings(self):
+        return self.predictions.decoder
+
+    @add_start_docstrings_to_callable(ALBERT_INPUTS_DOCSTRING)
+    def forward(
+        self,
+        input_ids=None,
+        attention_mask=None,
+        token_type_ids=None,
+        position_ids=None,
+        head_mask=None,
+        inputs_embeds=None,
+        masked_lm_labels=None,
+        sentence_order_label=None,
+    ):
+        r"""
+        masked_lm_labels (``torch.LongTensor`` of shape ``(batch_size, sequence_length)``, `optional`, defaults to :obj:`None`):
+            Labels for computing the masked language modeling loss.
+            Indices should be in ``[-100, 0, ..., config.vocab_size]`` (see ``input_ids`` docstring)
+            Tokens with indices set to ``-100`` are ignored (masked), the loss is only computed for the tokens with labels
+            in ``[0, ..., config.vocab_size]``
+        sentence_order_label (``torch.LongTensor`` of shape ``(batch_size,)``, `optional`, defaults to :obj:`None`):
+            Labels for computing the next sequence prediction (classification) loss. Input should be a sequence pair (see :obj:`input_ids` docstring)
+            Indices should be in ``[0, 1]``.
+            ``0`` indicates original order (sequence A, then sequence B),
+            ``1`` indicates switched order (sequence B, then sequence A).
+
+    Returns:
+        :obj:`tuple(torch.FloatTensor)` comprising various elements depending on the configuration (:class:`~transformers.BertConfig`) and inputs:
+        loss (`optional`, returned when ``masked_lm_labels`` is provided) ``torch.FloatTensor`` of shape ``(1,)``:
+            Total loss as the sum of the masked language modeling loss and the next sequence prediction (classification) loss.
+        prediction_scores (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_length, config.vocab_size)`)
+            Prediction scores of the language modeling head (scores for each vocabulary token before SoftMax).
+        sop_scores (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, 2)`):
+            Prediction scores of the next sequence prediction (classification) head (scores of True/False
+            continuation before SoftMax).
+        hidden_states (:obj:`tuple(torch.FloatTensor)`, `optional`, returned when :obj:`config.output_hidden_states=True`):
+            Tuple of :obj:`torch.FloatTensor` (one for the output of the embeddings + one for the output of each layer)
+            of shape :obj:`(batch_size, sequence_length, hidden_size)`.
+
+            Hidden-states of the model at the output of each layer plus the initial embedding outputs.
+        attentions (:obj:`tuple(torch.FloatTensor)`, `optional`, returned when ``config.output_attentions=True``):
+            Tuple of :obj:`torch.FloatTensor` (one for each layer) of shape
+            :obj:`(batch_size, num_heads, sequence_length, sequence_length)`.
+
+            Attentions weights after the attention softmax, used to compute the weighted average in the self-attention
+            heads.
+
+
+    Examples::
+
+        from transformers import AlbertTokenizer, AlbertForPreTraining
+        import torch
+
+        tokenizer = AlbertTokenizer.from_pretrained('albert-base-v2')
+        model = AlbertForPreTraining.from_pretrained('albert-base-v2')
+
+        input_ids = torch.tensor(tokenizer.encode("Hello, my dog is cute", add_special_tokens=True)).unsqueeze(0)  # Batch size 1
+        outputs = model(input_ids)
+
+        prediction_scores, sop_scores = outputs[:2]
+
+        """
+
+        outputs = self.albert(
+            input_ids,
+            attention_mask=attention_mask,
+            token_type_ids=token_type_ids,
+            position_ids=position_ids,
+            head_mask=head_mask,
+            inputs_embeds=inputs_embeds,
+        )
+
+        sequence_output, pooled_output = outputs[:2]
+
+        prediction_scores = self.predictions(sequence_output)
+        sop_scores = self.sop_classifier(pooled_output)
+
+        outputs = (prediction_scores, sop_scores,) + outputs[2:]  # add hidden states and attention if they are here
+
+        if masked_lm_labels is not None and sentence_order_label is not None:
+            loss_fct = CrossEntropyLoss()
+            masked_lm_loss = loss_fct(prediction_scores.view(-1, self.config.vocab_size), masked_lm_labels.view(-1))
+            sentence_order_loss = loss_fct(sop_scores.view(-1, 2), sentence_order_label.view(-1))
+            total_loss = masked_lm_loss + sentence_order_loss
+            outputs = (total_loss,) + outputs
+
+        return outputs  # (loss), prediction_scores, sop_scores, (hidden_states), (attentions)
 
 
 class AlbertMLMHead(nn.Module):
@@ -600,9 +697,22 @@ class AlbertMLMHead(nn.Module):
         hidden_states = self.LayerNorm(hidden_states)
         hidden_states = self.decoder(hidden_states)
 
-        prediction_scores = hidden_states + self.bias
+        prediction_scores = hidden_states
 
         return prediction_scores
+
+
+class AlbertSOPHead(nn.Module):
+    def __init__(self, config):
+        super().__init__()
+
+        self.dropout = nn.Dropout(config.classifier_dropout_prob)
+        self.classifier = nn.Linear(config.hidden_size, config.num_labels)
+
+    def forward(self, pooled_output):
+        dropout_pooled_output = self.dropout(pooled_output)
+        logits = self.classifier(dropout_pooled_output)
+        return logits
 
 
 @add_start_docstrings(
@@ -789,6 +899,103 @@ class AlbertForSequenceClassification(AlbertPreTrainedModel):
 
 
 @add_start_docstrings(
+    """Albert Model with a token classification head on top (a linear layer on top of
+    the hidden-states output) e.g. for Named-Entity-Recognition (NER) tasks. """,
+    ALBERT_START_DOCSTRING,
+)
+class AlbertForTokenClassification(AlbertPreTrainedModel):
+    def __init__(self, config):
+        super().__init__(config)
+        self.num_labels = config.num_labels
+
+        self.albert = AlbertModel(config)
+        self.dropout = nn.Dropout(config.hidden_dropout_prob)
+        self.classifier = nn.Linear(config.hidden_size, self.config.num_labels)
+
+        self.init_weights()
+
+    @add_start_docstrings_to_callable(ALBERT_INPUTS_DOCSTRING)
+    def forward(
+        self,
+        input_ids=None,
+        attention_mask=None,
+        token_type_ids=None,
+        position_ids=None,
+        head_mask=None,
+        inputs_embeds=None,
+        labels=None,
+    ):
+        r"""
+        labels (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_length)`, `optional`, defaults to :obj:`None`):
+            Labels for computing the token classification loss.
+            Indices should be in ``[0, ..., config.num_labels - 1]``.
+
+    Returns:
+        :obj:`tuple(torch.FloatTensor)` comprising various elements depending on the configuration (:class:`~transformers.AlbertConfig`) and inputs:
+        loss (:obj:`torch.FloatTensor` of shape :obj:`(1,)`, `optional`, returned when ``labels`` is provided) :
+            Classification loss.
+        scores (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_length, config.num_labels)`)
+            Classification scores (before SoftMax).
+        hidden_states (:obj:`tuple(torch.FloatTensor)`, `optional`, returned when ``config.output_hidden_states=True``):
+            Tuple of :obj:`torch.FloatTensor` (one for the output of the embeddings + one for the output of each layer)
+            of shape :obj:`(batch_size, sequence_length, hidden_size)`.
+
+            Hidden-states of the model at the output of each layer plus the initial embedding outputs.
+        attentions (:obj:`tuple(torch.FloatTensor)`, `optional`, returned when ``config.output_attentions=True``):
+            Tuple of :obj:`torch.FloatTensor` (one for each layer) of shape
+            :obj:`(batch_size, num_heads, sequence_length, sequence_length)`.
+
+            Attentions weights after the attention softmax, used to compute the weighted average in the self-attention
+            heads.
+
+    Examples::
+
+        from transformers import AlbertTokenizer, AlbertForTokenClassification
+        import torch
+
+        tokenizer = AlbertTokenizer.from_pretrained('albert-base-v2')
+        model = AlbertForTokenClassification.from_pretrained('albert-base-v2')
+
+        input_ids = torch.tensor(tokenizer.encode("Hello, my dog is cute", add_special_tokens=True)).unsqueeze(0)  # Batch size 1
+        labels = torch.tensor([1] * input_ids.size(1)).unsqueeze(0)  # Batch size 1
+        outputs = model(input_ids, labels=labels)
+
+        loss, scores = outputs[:2]
+
+        """
+
+        outputs = self.albert(
+            input_ids,
+            attention_mask=attention_mask,
+            token_type_ids=token_type_ids,
+            position_ids=position_ids,
+            head_mask=head_mask,
+            inputs_embeds=inputs_embeds,
+        )
+
+        sequence_output = outputs[0]
+
+        sequence_output = self.dropout(sequence_output)
+        logits = self.classifier(sequence_output)
+
+        outputs = (logits,) + outputs[2:]  # add hidden states and attention if they are here
+
+        if labels is not None:
+            loss_fct = CrossEntropyLoss()
+            # Only keep active parts of the loss
+            if attention_mask is not None:
+                active_loss = attention_mask.view(-1) == 1
+                active_logits = logits.view(-1, self.num_labels)[active_loss]
+                active_labels = labels.view(-1)[active_loss]
+                loss = loss_fct(active_logits, active_labels)
+            else:
+                loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
+            outputs = (loss,) + outputs
+
+        return outputs  # (loss), logits, (hidden_states), (attentions)
+
+
+@add_start_docstrings(
     """Albert Model with a span classification head on top for extractive question-answering tasks like SQuAD (a linear layers on top of
     the hidden-states output to compute `span start logits` and `span end logits`). """,
     ALBERT_START_DOCSTRING,
@@ -848,7 +1055,7 @@ class AlbertForQuestionAnswering(AlbertPreTrainedModel):
     Examples::
 
         # The checkpoint albert-base-v2 is not fine-tuned for question answering. Please see the
-        # examples/run_squad.py example to see how to fine-tune a model to a question answering task.
+        # examples/question-answering/run_squad.py example to see how to fine-tune a model to a question answering task.
 
         from transformers import AlbertTokenizer, AlbertForQuestionAnswering
         import torch

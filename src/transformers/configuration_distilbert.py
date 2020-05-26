@@ -73,10 +73,10 @@ class DistilBertConfig(PretrainedConfig):
                 The standard deviation of the truncated_normal_initializer for initializing all weight matrices.
             qa_dropout (:obj:`float`, optional, defaults to 0.1):
                 The dropout probabilities used in the question answering model
-                :class:`~tranformers.DistilBertForQuestionAnswering`.
+                :class:`~transformers.DistilBertForQuestionAnswering`.
             seq_classif_dropout (:obj:`float`, optional, defaults to 0.2):
                 The dropout probabilities used in the sequence classification model
-                :class:`~tranformers.DistilBertForSequenceClassification`.
+                :class:`~transformers.DistilBertForSequenceClassification`.
 
         Example::
 
@@ -113,9 +113,10 @@ class DistilBertConfig(PretrainedConfig):
         initializer_range=0.02,
         qa_dropout=0.1,
         seq_classif_dropout=0.2,
+        pad_token_id=0,
         **kwargs
     ):
-        super().__init__(**kwargs)
+        super().__init__(**kwargs, pad_token_id=pad_token_id)
         self.vocab_size = vocab_size
         self.max_position_embeddings = max_position_embeddings
         self.sinusoidal_pos_embds = sinusoidal_pos_embds

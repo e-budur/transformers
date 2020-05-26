@@ -20,10 +20,11 @@ from transformers import CTRLConfig, is_tf_available
 
 from .test_configuration_common import ConfigTester
 from .test_modeling_tf_common import TFModelTesterMixin, ids_tensor
-from .utils import CACHE_DIR, require_tf, slow
+from .utils import require_tf, slow
 
 
 if is_tf_available():
+    import tensorflow as tf
     from transformers.modeling_tf_ctrl import TFCTRLModel, TFCTRLLMHeadModel, TF_CTRL_PRETRAINED_MODEL_ARCHIVE_MAP
 
 
@@ -31,6 +32,7 @@ if is_tf_available():
 class TFCTRLModelTest(TFModelTesterMixin, unittest.TestCase):
 
     all_model_classes = (TFCTRLModel, TFCTRLLMHeadModel) if is_tf_available() else ()
+    all_generative_model_classes = (TFCTRLLMHeadModel,) if is_tf_available() else ()
 
     class TFCTRLModelTester(object):
         def __init__(
@@ -199,5 +201,37 @@ class TFCTRLModelTest(TFModelTesterMixin, unittest.TestCase):
     @slow
     def test_model_from_pretrained(self):
         for model_name in list(TF_CTRL_PRETRAINED_MODEL_ARCHIVE_MAP.keys())[:1]:
-            model = TFCTRLModel.from_pretrained(model_name, cache_dir=CACHE_DIR)
+            model = TFCTRLModel.from_pretrained(model_name)
             self.assertIsNotNone(model)
+
+
+class TFCTRLModelLanguageGenerationTest(unittest.TestCase):
+    @slow
+    def test_lm_generate_ctrl(self):
+        model = TFCTRLLMHeadModel.from_pretrained("ctrl")
+        input_ids = tf.convert_to_tensor([[11859, 0, 1611, 8]], dtype=tf.int32)  # Legal the president is
+        expected_output_ids = [
+            11859,
+            0,
+            1611,
+            8,
+            5,
+            150,
+            26449,
+            2,
+            19,
+            348,
+            469,
+            3,
+            2595,
+            48,
+            20740,
+            246533,
+            246533,
+            19,
+            30,
+            5,
+        ]  # Legal the president is a good guy and I don't want to lose my job. \n \n I have a
+
+        output_ids = model.generate(input_ids, do_sample=False)
+        self.assertListEqual(output_ids[0].numpy().tolist(), expected_output_ids)
