@@ -23,10 +23,10 @@ from .configuration_xlm import XLMConfig
 logger = logging.getLogger(__name__)
 
 FLAUBERT_PRETRAINED_CONFIG_ARCHIVE_MAP = {
-    "flaubert-small-cased": "https://s3.amazonaws.com/models.huggingface.co/bert/flaubert/flaubert_small_cased/config.json",
-    "flaubert-base-uncased": "https://s3.amazonaws.com/models.huggingface.co/bert/flaubert/flaubert_base_uncased/config.json",
-    "flaubert-base-cased": "https://s3.amazonaws.com/models.huggingface.co/bert/flaubert/flaubert_base_cased/config.json",
-    "flaubert-large-cased": "https://s3.amazonaws.com/models.huggingface.co/bert/flaubert/flaubert_large_cased/config.json",
+    "flaubert/flaubert_small_cased": "https://s3.amazonaws.com/models.huggingface.co/bert/flaubert/flaubert_small_cased/config.json",
+    "flaubert/flaubert_base_uncased": "https://s3.amazonaws.com/models.huggingface.co/bert/flaubert/flaubert_base_uncased/config.json",
+    "flaubert/flaubert_base_cased": "https://s3.amazonaws.com/models.huggingface.co/bert/flaubert/flaubert_base_cased/config.json",
+    "flaubert/flaubert_large_cased": "https://s3.amazonaws.com/models.huggingface.co/bert/flaubert/flaubert_large_cased/config.json",
 }
 
 
@@ -109,11 +109,12 @@ class FlaubertConfig(XLMConfig):
                 Argument used when doing sequence summary. Used in for the multiple choice head in
                 :class:`~transformers.XLMForSequenceClassification`.
                 Is one of the following options:
-                    - 'last' => take the last token hidden state (like XLNet)
-                    - 'first' => take the first token hidden state (like Bert)
-                    - 'mean' => take the mean of all tokens hidden states
-                    - 'cls_index' => supply a Tensor of classification token position (GPT/GPT-2)
-                    - 'attn' => Not implemented now, use multi-head attention
+
+                - 'last' => take the last token hidden state (like XLNet)
+                - 'first' => take the first token hidden state (like Bert)
+                - 'mean' => take the mean of all tokens hidden states
+                - 'cls_index' => supply a Tensor of classification token position (GPT/GPT-2)
+                - 'attn' => Not implemented now, use multi-head attention
             summary_use_proj (:obj:`boolean`, optional, defaults to :obj:`True`):
                 Argument used when doing sequence summary. Used in for the multiple choice head in
                 :class:`~transformers.XLMForSequenceClassification`.
@@ -141,12 +142,11 @@ class FlaubertConfig(XLMConfig):
                 text in a given language.
     """
 
-    pretrained_config_archive_map = FLAUBERT_PRETRAINED_CONFIG_ARCHIVE_MAP
     model_type = "flaubert"
 
-    def __init__(self, layerdrop=0.0, pre_norm=False, **kwargs):
+    def __init__(self, layerdrop=0.0, pre_norm=False, pad_token_id=2, bos_token_id=0, **kwargs):
         """Constructs FlaubertConfig.
         """
-        super().__init__(**kwargs)
+        super().__init__(pad_token_id=pad_token_id, bos_token_id=bos_token_id, **kwargs)
         self.layerdrop = layerdrop
         self.pre_norm = pre_norm

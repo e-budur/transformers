@@ -1,5 +1,16 @@
-tensorboardX
 tensorboard
 scikit-learn
 seqeval
 compress_pickle
+psutil
+sacrebleu
+rouge-score
+tensorflow_datasets
+pytorch-lightning==0.8.1
+matplotlib
+git-python==1.0.3
+faiss
+streamlit
+elasticsearch
+pandas
+nlp

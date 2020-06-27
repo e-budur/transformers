@@ -20,13 +20,13 @@ sys.path.insert(0, os.path.abspath('../../src'))
 # -- Project information -----------------------------------------------------
 
 project = u'transformers'
-copyright = u'2019, huggingface'
+copyright = u'2020, huggingface'
 author = u'huggingface'
 
 # The short X.Y version
 version = u''
 # The full version, including alpha/beta/rc tags
-release = u'2.4.1'
+release = u'2.11.0'
 
 
 # -- General configuration ---------------------------------------------------
@@ -44,7 +44,8 @@ extensions = [
     'sphinx.ext.napoleon',
     'recommonmark',
     'sphinx.ext.viewcode',
-    'sphinx_markdown_tables'
+    'sphinx_markdown_tables',
+    'sphinx_copybutton'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -74,6 +75,8 @@ exclude_patterns = [u'_build', 'Thumbs.db', '.DS_Store']
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = None
 
+# Remove the prompt when copying examples
+copybutton_prompt_text = ">>> "
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -104,6 +107,12 @@ html_static_path = ['_static']
 # 'searchbox.html']``.
 #
 # html_sidebars = {}
+
+# This must be the name of an image file (path relative to the configuration 
+# directory) that is the favicon of the docs. Modern browsers use this as 
+# the icon for tabs, windows and bookmarks. It should be a Windows-style 
+# icon file (.ico).
+html_favicon = 'favicon.ico'
 
 
 # -- Options for HTMLHelp output ---------------------------------------------
@@ -181,8 +190,8 @@ epub_title = project
 epub_exclude_files = ['search.html']
 
 def setup(app):
-    app.add_stylesheet('css/huggingface.css')
-    app.add_stylesheet('css/code-snippets.css')
+    app.add_css_file('css/huggingface.css')
+    app.add_css_file('css/code-snippets.css')
     app.add_js_file('js/custom.js')
 
 # -- Extension configuration -------------------------------------------------

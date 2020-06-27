@@ -108,11 +108,12 @@ class XLMConfig(PretrainedConfig):
                 Argument used when doing sequence summary. Used in for the multiple choice head in
                 :class:`~transformers.XLMForSequenceClassification`.
                 Is one of the following options:
-                    - 'last' => take the last token hidden state (like XLNet)
-                    - 'first' => take the first token hidden state (like Bert)
-                    - 'mean' => take the mean of all tokens hidden states
-                    - 'cls_index' => supply a Tensor of classification token position (GPT/GPT-2)
-                    - 'attn' => Not implemented now, use multi-head attention
+
+                - 'last' => take the last token hidden state (like XLNet)
+                - 'first' => take the first token hidden state (like Bert)
+                - 'mean' => take the mean of all tokens hidden states
+                - 'cls_index' => supply a Tensor of classification token position (GPT/GPT-2)
+                - 'attn' => Not implemented now, use multi-head attention
             summary_use_proj (:obj:`boolean`, optional, defaults to :obj:`True`):
                 Argument used when doing sequence summary. Used in for the multiple choice head in
                 :class:`~transformers.XLMForSequenceClassification`.
@@ -141,23 +142,18 @@ class XLMConfig(PretrainedConfig):
 
         Example::
 
-            from transformers import XLMConfig, XLMModel
+            >>> from transformers import XLMConfig, XLMModel
 
-            # Initializing a XLM configuration
-            configuration = XLMConfig()
+            >>> # Initializing a XLM configuration
+            >>> configuration = XLMConfig()
 
-            # Initializing a model from the configuration
-            model = XLMModel(configuration)
+            >>> # Initializing a model from the configuration
+            >>> model = XLMModel(configuration)
 
-            # Accessing the model configuration
-            configuration = model.config
-
-        Attributes:
-            pretrained_config_archive_map (Dict[str, str]):
-                A dictionary containing all the available pre-trained checkpoints.
+            >>> # Accessing the model configuration
+            >>> configuration = model.config
     """
 
-    pretrained_config_archive_map = XLM_PRETRAINED_CONFIG_ARCHIVE_MAP
     model_type = "xlm"
 
     def __init__(
@@ -193,11 +189,13 @@ class XLMConfig(PretrainedConfig):
         end_n_top=5,
         mask_token_id=0,
         lang_id=0,
+        pad_token_id=2,
+        bos_token_id=0,
         **kwargs
     ):
         """Constructs XLMConfig.
         """
-        super().__init__(**kwargs)
+        super().__init__(pad_token_id=pad_token_id, bos_token_id=bos_token_id, **kwargs)
         self.vocab_size = vocab_size
         self.emb_dim = emb_dim
         self.n_layers = n_layers

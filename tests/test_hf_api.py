@@ -21,25 +21,26 @@ import unittest
 import requests
 from requests.exceptions import HTTPError
 
-from transformers.hf_api import HfApi, HfFolder, PresignedUrl, S3Obj
+from transformers.hf_api import HfApi, HfFolder, ModelInfo, PresignedUrl, S3Obj
 
 
 USER = "__DUMMY_TRANSFORMERS_USER__"
 PASS = "__DUMMY_TRANSFORMERS_PASS__"
 FILES = [
     (
-        "Test-{}.txt".format(int(time.time())),
+        "nested/Test-{}.txt".format(int(time.time())),
         os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures/input.txt"),
     ),
     (
-        "yoyo {}.txt".format(int(time.time())),  # space is intentional
+        "nested/yoyo {}.txt".format(int(time.time())),  # space is intentional
         os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures/empty.txt"),
     ),
 ]
+ENDPOINT_STAGING = "https://moon-staging.huggingface.co"
 
 
 class HfApiCommonTest(unittest.TestCase):
-    _api = HfApi(endpoint="https://moon-staging.huggingface.co")
+    _api = HfApi(endpoint=ENDPOINT_STAGING)
 
 
 class HfApiLoginTest(HfApiCommonTest):
@@ -66,8 +67,26 @@ class HfApiEndpointsTest(HfApiCommonTest):
             cls._api.delete_obj(token=cls._token, filename=FILE_KEY)
 
     def test_whoami(self):
-        user = self._api.whoami(token=self._token)
+        user, orgs = self._api.whoami(token=self._token)
         self.assertEqual(user, USER)
+        self.assertIsInstance(orgs, list)
+
+    def test_presign_invalid_org(self):
+        with self.assertRaises(HTTPError):
+            _ = self._api.presign(token=self._token, filename="nested/fake_org.txt", organization="fake")
+
+    def test_presign_valid_org(self):
+        urls = self._api.presign(token=self._token, filename="nested/valid_org.txt", organization="valid_org")
+        self.assertIsInstance(urls, PresignedUrl)
+
+    def test_presign_invalid(self):
+        try:
+            _ = self._api.presign(token=self._token, filename="non_nested.json")
+        except HTTPError as e:
+            self.assertIsNotNone(e.response.text)
+            self.assertTrue("Filename invalid" in e.response.text)
+        else:
+            self.fail("Expected an exception")
 
     def test_presign(self):
         for FILE_KEY, FILE_PATH in FILES:
@@ -90,6 +109,18 @@ class HfApiEndpointsTest(HfApiCommonTest):
         if len(objs) > 0:
             o = objs[-1]
             self.assertIsInstance(o, S3Obj)
+
+
+class HfApiPublicTest(unittest.TestCase):
+    def test_staging_model_list(self):
+        _api = HfApi(endpoint=ENDPOINT_STAGING)
+        _ = _api.model_list()
+
+    def test_model_list(self):
+        _api = HfApi()
+        models = _api.model_list()
+        self.assertGreater(len(models), 100)
+        self.assertIsInstance(models[0], ModelInfo)
 
 
 class HfFolderTest(unittest.TestCase):

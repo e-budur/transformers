@@ -29,8 +29,10 @@ Tips:
   XLNet is pretrained using only a sub-set of the output tokens as target which are selected
   with the `target_mapping` input.
 - To use XLNet for sequential decoding (i.e. not in fully bi-directional setting), use the `perm_mask` and
-  `target_mapping` inputs to control the attention span and outputs (see examples in `examples/run_generation.py`)
+  `target_mapping` inputs to control the attention span and outputs (see examples in `examples/text-generation/run_generation.py`)
 - XLNet is one of the few models that has no sequence length limit.
+
+The original code can be found `here <https://github.com/zihangdai/xlnet/>`_.
 
 
 XLNetConfig
@@ -44,7 +46,8 @@ XLNetTokenizer
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: transformers.XLNetTokenizer
-    :members:
+    :members: build_inputs_with_special_tokens, get_special_tokens_mask,
+        create_token_type_ids_from_sequences, save_vocabulary
 
 
 XLNetModel
@@ -68,17 +71,17 @@ XLNetForSequenceClassification
     :members:
 
 
-XLNetForTokenClassification
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. autoclass:: transformers.XLNetForTokenClassification
-    :members:
-
-
 XLNetForMultipleChoice
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: transformers.XLNetForMultipleChoice
+    :members:
+
+
+XLNetForTokenClassification
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: transformers.XLNetForTokenClassification
     :members:
 
 
@@ -114,6 +117,20 @@ TFXLNetForSequenceClassification
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: transformers.TFXLNetForSequenceClassification
+    :members:
+
+
+TFLNetForMultipleChoice
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: transformers.TFXLNetForMultipleChoice
+    :members:
+
+
+TFXLNetForTokenClassification
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: transformers.TFXLNetForTokenClassification
     :members:
 
 

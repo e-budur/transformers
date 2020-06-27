@@ -97,7 +97,7 @@ class ReformerConfig(PretrainedConfig):
                 Number of following neighbouring chunks to attend to in LocalSelfAttention layer in addition to itself.
             local_attention_probs_dropout_prob (:obj:`float`, optional, defaults to 0.1):
                 The dropout ratio for the attention probabilities in LocalSelfAttention.
-            lsh_chunk_length (:obj:`int`, optional, defaults to 64):
+            lsh_attn_chunk_length (:obj:`int`, optional, defaults to 64):
                 Length of chunk which attends to itself in LSHSelfAttention. Chunking reduces memory complexity from sequence length x sequence length (self attention) to chunk length x chunk length x sequence length / chunk length (chunked self attention).
             lsh_num_chunks_before (:obj:`int`, optional, defaults to 1):
                 Number of previous neighbouring chunks to attend to in LSHSelfAttention layer to itself.
@@ -125,22 +125,17 @@ class ReformerConfig(PretrainedConfig):
 
         Example::
 
-            from transformers import ReformerModel, ReformerConfig
+            >>> from transformers import ReformerModel, ReformerConfig
 
-            # Initializing a Reformer configuration
-            configuration = ReformerConfig()
+            >>> # Initializing a Reformer configuration
+            >>> configuration = ReformerConfig()
 
-            # Initializing a Reformer model
-            model = ReformerModel(configuration)
+            >>> # Initializing a Reformer model
+            >>> model = ReformerModel(configuration)
 
-            # Accessing the model configuration
-            configuration = model.config
-
-        Attributes:
-            pretrained_config_archive_map (Dict[str, str]):
-                A dictionary containing all the available pre-trained checkpoints.
+            >>> # Accessing the model configuration
+            >>> configuration = model.config
     """
-    pretrained_config_archive_map = REFORMER_PRETRAINED_CONFIG_ARCHIVE_MAP
     model_type = "reformer"
 
     def __init__(

@@ -32,31 +32,31 @@ VOCAB_FILES_NAMES = {
 
 PRETRAINED_VOCAB_FILES_MAP = {
     "vocab_file": {
-        "flaubert-small-cased": "https://s3.amazonaws.com/models.huggingface.co/bert/flaubert/flaubert_small_cased/vocab.json",
-        "flaubert-base-uncased": "https://s3.amazonaws.com/models.huggingface.co/bert/flaubert/flaubert_base_uncased/vocab.json",
-        "flaubert-base-cased": "https://s3.amazonaws.com/models.huggingface.co/bert/flaubert/flaubert_base_cased/vocab.json",
-        "flaubert-large-cased": "https://s3.amazonaws.com/models.huggingface.co/bert/flaubert/flaubert_large_cased/vocab.json",
+        "flaubert/flaubert_small_cased": "https://s3.amazonaws.com/models.huggingface.co/bert/flaubert/flaubert_small_cased/vocab.json",
+        "flaubert/flaubert_base_uncased": "https://s3.amazonaws.com/models.huggingface.co/bert/flaubert/flaubert_base_uncased/vocab.json",
+        "flaubert/flaubert_base_cased": "https://s3.amazonaws.com/models.huggingface.co/bert/flaubert/flaubert_base_cased/vocab.json",
+        "flaubert/flaubert_large_cased": "https://s3.amazonaws.com/models.huggingface.co/bert/flaubert/flaubert_large_cased/vocab.json",
     },
     "merges_file": {
-        "flaubert-small-cased": "https://s3.amazonaws.com/models.huggingface.co/bert/flaubert/flaubert_small_cased/merges.txt",
-        "flaubert-base-uncased": "https://s3.amazonaws.com/models.huggingface.co/bert/flaubert/flaubert_base_uncased/merges.txt",
-        "flaubert-base-cased": "https://s3.amazonaws.com/models.huggingface.co/bert/flaubert/flaubert_base_cased/merges.txt",
-        "flaubert-large-cased": "https://s3.amazonaws.com/models.huggingface.co/bert/flaubert/flaubert_large_cased/merges.txt",
+        "flaubert/flaubert_small_cased": "https://s3.amazonaws.com/models.huggingface.co/bert/flaubert/flaubert_small_cased/merges.txt",
+        "flaubert/flaubert_base_uncased": "https://s3.amazonaws.com/models.huggingface.co/bert/flaubert/flaubert_base_uncased/merges.txt",
+        "flaubert/flaubert_base_cased": "https://s3.amazonaws.com/models.huggingface.co/bert/flaubert/flaubert_base_cased/merges.txt",
+        "flaubert/flaubert_large_cased": "https://s3.amazonaws.com/models.huggingface.co/bert/flaubert/flaubert_large_cased/merges.txt",
     },
 }
 
 PRETRAINED_POSITIONAL_EMBEDDINGS_SIZES = {
-    "flaubert-small-cased": 512,
-    "flaubert-base-uncased": 512,
-    "flaubert-base-cased": 512,
-    "flaubert-large-cased": 512,
+    "flaubert/flaubert_small_cased": 512,
+    "flaubert/flaubert_base_uncased": 512,
+    "flaubert/flaubert_base_cased": 512,
+    "flaubert/flaubert_large_cased": 512,
 }
 
 PRETRAINED_INIT_CONFIGURATION = {
-    "flaubert-small-cased": {"do_lowercase": False},
-    "flaubert-base-uncased": {"do_lowercase": True},
-    "flaubert-base-cased": {"do_lowercase": False},
-    "flaubert-large-cased": {"do_lowercase": False},
+    "flaubert/flaubert_small_cased": {"do_lowercase": False},
+    "flaubert/flaubert_base_uncased": {"do_lowercase": True},
+    "flaubert/flaubert_base_cased": {"do_lowercase": False},
+    "flaubert/flaubert_large_cased": {"do_lowercase": False},
 }
 
 
@@ -80,14 +80,14 @@ class FlaubertTokenizer(XLMTokenizer):
     """
     BPE tokenizer for Flaubert
 
-        - Moses preprocessing & tokenization
+    - Moses preprocessing & tokenization
+    - Normalize all inputs text
+    - argument ``special_tokens`` and function ``set_special_tokens``, can be used to add additional symbols \
+      (ex: "__classify__") to a vocabulary
+    - `do_lowercase` controle lower casing (automatically set for pretrained vocabularies)
 
-        - Normalize all inputs text
-
-        - argument ``special_tokens`` and function ``set_special_tokens``, can be used to add additional symbols \
-        (ex: "__classify__") to a vocabulary
-
-        - `do_lowercase` controle lower casing (automatically set for pretrained vocabularies)
+    This tokenizer inherits from :class:`~transformers.XLMTokenizer`. Please check the superclass for usage examples
+    and documentation regarding arguments.
     """
 
     vocab_files_names = VOCAB_FILES_NAMES

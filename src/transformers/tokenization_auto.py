@@ -12,22 +12,30 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-""" Auto Model class. """
+""" Auto Tokenizer class. """
 
 
 import logging
 from collections import OrderedDict
 
+from transformers.configuration_mobilebert import MobileBertConfig
+
 from .configuration_auto import (
     AlbertConfig,
     AutoConfig,
+    BartConfig,
     BertConfig,
     CamembertConfig,
     CTRLConfig,
     DistilBertConfig,
+    ElectraConfig,
     FlaubertConfig,
     GPT2Config,
+    LongformerConfig,
+    MBartConfig,
     OpenAIGPTConfig,
+    ReformerConfig,
+    RetriBertConfig,
     RobertaConfig,
     T5Config,
     TransfoXLConfig,
@@ -35,19 +43,27 @@ from .configuration_auto import (
     XLMRobertaConfig,
     XLNetConfig,
 )
+from .configuration_marian import MarianConfig
 from .configuration_utils import PretrainedConfig
 from .tokenization_albert import AlbertTokenizer
-from .tokenization_bert import BertTokenizer
+from .tokenization_bart import BartTokenizer, MBartTokenizer
+from .tokenization_bert import BertTokenizer, BertTokenizerFast
 from .tokenization_bert_japanese import BertJapaneseTokenizer
 from .tokenization_camembert import CamembertTokenizer
 from .tokenization_ctrl import CTRLTokenizer
-from .tokenization_distilbert import DistilBertTokenizer
+from .tokenization_distilbert import DistilBertTokenizer, DistilBertTokenizerFast
+from .tokenization_electra import ElectraTokenizer, ElectraTokenizerFast
 from .tokenization_flaubert import FlaubertTokenizer
-from .tokenization_gpt2 import GPT2Tokenizer
-from .tokenization_openai import OpenAIGPTTokenizer
-from .tokenization_roberta import RobertaTokenizer
+from .tokenization_gpt2 import GPT2Tokenizer, GPT2TokenizerFast
+from .tokenization_longformer import LongformerTokenizer
+from .tokenization_marian import MarianTokenizer
+from .tokenization_mobilebert import MobileBertTokenizer, MobileBertTokenizerFast
+from .tokenization_openai import OpenAIGPTTokenizer, OpenAIGPTTokenizerFast
+from .tokenization_reformer import ReformerTokenizer
+from .tokenization_retribert import RetriBertTokenizer, RetriBertTokenizerFast
+from .tokenization_roberta import RobertaTokenizer, RobertaTokenizerFast
 from .tokenization_t5 import T5Tokenizer
-from .tokenization_transfo_xl import TransfoXLTokenizer
+from .tokenization_transfo_xl import TransfoXLTokenizer, TransfoXLTokenizerFast
 from .tokenization_xlm import XLMTokenizer
 from .tokenization_xlm_roberta import XLMRobertaTokenizer
 from .tokenization_xlnet import XLNetTokenizer
@@ -58,20 +74,28 @@ logger = logging.getLogger(__name__)
 
 TOKENIZER_MAPPING = OrderedDict(
     [
-        (T5Config, T5Tokenizer),
-        (DistilBertConfig, DistilBertTokenizer),
-        (AlbertConfig, AlbertTokenizer),
-        (CamembertConfig, CamembertTokenizer),
-        (XLMRobertaConfig, XLMRobertaTokenizer),
-        (RobertaConfig, RobertaTokenizer),
-        (BertConfig, BertTokenizer),
-        (OpenAIGPTConfig, OpenAIGPTTokenizer),
-        (GPT2Config, GPT2Tokenizer),
-        (TransfoXLConfig, TransfoXLTokenizer),
-        (XLNetConfig, XLNetTokenizer),
-        (FlaubertConfig, FlaubertTokenizer),
-        (XLMConfig, XLMTokenizer),
-        (CTRLConfig, CTRLTokenizer),
+        (RetriBertConfig, (RetriBertTokenizer, RetriBertTokenizerFast)),
+        (T5Config, (T5Tokenizer, None)),
+        (MobileBertConfig, (MobileBertTokenizer, MobileBertTokenizerFast)),
+        (DistilBertConfig, (DistilBertTokenizer, DistilBertTokenizerFast)),
+        (AlbertConfig, (AlbertTokenizer, None)),
+        (CamembertConfig, (CamembertTokenizer, None)),
+        (MBartConfig, (MBartTokenizer, None)),
+        (XLMRobertaConfig, (XLMRobertaTokenizer, None)),
+        (MarianConfig, (MarianTokenizer, None)),
+        (BartConfig, (BartTokenizer, None)),
+        (LongformerConfig, (LongformerTokenizer, None)),
+        (RobertaConfig, (RobertaTokenizer, RobertaTokenizerFast)),
+        (ReformerConfig, (ReformerTokenizer, None)),
+        (ElectraConfig, (ElectraTokenizer, ElectraTokenizerFast)),
+        (BertConfig, (BertTokenizer, BertTokenizerFast)),
+        (OpenAIGPTConfig, (OpenAIGPTTokenizer, OpenAIGPTTokenizerFast)),
+        (GPT2Config, (GPT2Tokenizer, GPT2TokenizerFast)),
+        (TransfoXLConfig, (TransfoXLTokenizer, TransfoXLTokenizerFast)),
+        (XLNetConfig, (XLNetTokenizer, None)),
+        (FlaubertConfig, (FlaubertTokenizer, None)),
+        (XLMConfig, (XLMTokenizer, None)),
+        (CTRLConfig, (CTRLTokenizer, None)),
     ]
 )
 
@@ -82,25 +106,25 @@ class AutoTokenizer:
         when created with the `AutoTokenizer.from_pretrained(pretrained_model_name_or_path)`
         class method.
 
-        The `from_pretrained()` method take care of returning the correct tokenizer class instance
+        The `from_pretrained()` method takes care of returning the correct tokenizer class instance
         based on the `model_type` property of the config object, or when it's missing,
-        falling back to using pattern matching on the `pretrained_model_name_or_path` string.
+        falling back to using pattern matching on the `pretrained_model_name_or_path` string:
 
-        The tokenizer class to instantiate is selected as the first pattern matching
-        in the `pretrained_model_name_or_path` string (in the following order):
-            - contains `t5`: T5Tokenizer (T5 model)
-            - contains `distilbert`: DistilBertTokenizer (DistilBert model)
-            - contains `albert`: AlbertTokenizer (ALBERT model)
-            - contains `camembert`: CamembertTokenizer (CamemBERT model)
-            - contains `xlm-roberta`: XLMRobertaTokenizer (XLM-RoBERTa model)
-            - contains `roberta`: RobertaTokenizer (RoBERTa model)
-            - contains `bert`: BertTokenizer (Bert model)
-            - contains `openai-gpt`: OpenAIGPTTokenizer (OpenAI GPT model)
-            - contains `gpt2`: GPT2Tokenizer (OpenAI GPT-2 model)
-            - contains `transfo-xl`: TransfoXLTokenizer (Transformer-XL model)
-            - contains `xlnet`: XLNetTokenizer (XLNet model)
-            - contains `xlm`: XLMTokenizer (XLM model)
-            - contains `ctrl`: CTRLTokenizer (Salesforce CTRL model)
+            - `t5`: T5Tokenizer (T5 model)
+            - `distilbert`: DistilBertTokenizer (DistilBert model)
+            - `albert`: AlbertTokenizer (ALBERT model)
+            - `camembert`: CamembertTokenizer (CamemBERT model)
+            - `xlm-roberta`: XLMRobertaTokenizer (XLM-RoBERTa model)
+            - `longformer`: LongformerTokenizer (AllenAI Longformer model)
+            - `roberta`: RobertaTokenizer (RoBERTa model)
+            - `bert`: BertTokenizer (Bert model)
+            - `openai-gpt`: OpenAIGPTTokenizer (OpenAI GPT model)
+            - `gpt2`: GPT2Tokenizer (OpenAI GPT-2 model)
+            - `transfo-xl`: TransfoXLTokenizer (Transformer-XL model)
+            - `xlnet`: XLNetTokenizer (XLNet model)
+            - `xlm`: XLMTokenizer (XLM model)
+            - `ctrl`: CTRLTokenizer (Salesforce CTRL model)
+            - `electra`: ElectraTokenizer (Google ELECTRA model)
 
         This class cannot be instantiated using `__init__()` (throw an error).
     """
@@ -116,22 +140,26 @@ class AutoTokenizer:
         r""" Instantiate one of the tokenizer classes of the library
         from a pre-trained model vocabulary.
 
-        The tokenizer class to instantiate is selected as the first pattern matching
-        in the `pretrained_model_name_or_path` string (in the following order):
-            - contains `t5`: T5Tokenizer (T5 model)
-            - contains `distilbert`: DistilBertTokenizer (DistilBert model)
-            - contains `albert`: AlbertTokenizer (ALBERT model)
-            - contains `camembert`: CamembertTokenizer (CamemBERT model)
-            - contains `xlm-roberta`: XLMRobertaTokenizer (XLM-RoBERTa model)
-            - contains `roberta`: RobertaTokenizer (RoBERTa model)
-            - contains `bert-base-japanese`: BertJapaneseTokenizer (Bert model)
-            - contains `bert`: BertTokenizer (Bert model)
-            - contains `openai-gpt`: OpenAIGPTTokenizer (OpenAI GPT model)
-            - contains `gpt2`: GPT2Tokenizer (OpenAI GPT-2 model)
-            - contains `transfo-xl`: TransfoXLTokenizer (Transformer-XL model)
-            - contains `xlnet`: XLNetTokenizer (XLNet model)
-            - contains `xlm`: XLMTokenizer (XLM model)
-            - contains `ctrl`: CTRLTokenizer (Salesforce CTRL model)
+        The tokenizer class to instantiate is selected
+        based on the `model_type` property of the config object, or when it's missing,
+        falling back to using pattern matching on the `pretrained_model_name_or_path` string:
+
+            - `t5`: T5Tokenizer (T5 model)
+            - `distilbert`: DistilBertTokenizer (DistilBert model)
+            - `albert`: AlbertTokenizer (ALBERT model)
+            - `camembert`: CamembertTokenizer (CamemBERT model)
+            - `xlm-roberta`: XLMRobertaTokenizer (XLM-RoBERTa model)
+            - `longformer`: LongformerTokenizer (AllenAI Longformer model)
+            - `roberta`: RobertaTokenizer (RoBERTa model)
+            - `bert-base-japanese`: BertJapaneseTokenizer (Bert model)
+            - `bert`: BertTokenizer (Bert model)
+            - `openai-gpt`: OpenAIGPTTokenizer (OpenAI GPT model)
+            - `gpt2`: GPT2Tokenizer (OpenAI GPT-2 model)
+            - `transfo-xl`: TransfoXLTokenizer (Transformer-XL model)
+            - `xlnet`: XLNetTokenizer (XLNet model)
+            - `xlm`: XLMTokenizer (XLM model)
+            - `ctrl`: CTRLTokenizer (Salesforce CTRL model)
+            - `electra`: ElectraTokenizer (Google ELECTRA model)
 
         Params:
             pretrained_model_name_or_path: either:
@@ -154,6 +182,9 @@ class AutoTokenizer:
                 A dictionary of proxy servers to use by protocol or endpoint, e.g.: {'http': 'foo.bar:3128', 'http://hostname': 'foo.bar:4012'}.
                 The proxies are used on each request.
 
+            use_fast: (`optional`) boolean, default False:
+                Indicate if transformers should try to load the fast version of the tokenizer (True) or use the Python one (False).
+
             inputs: (`optional`) positional arguments: will be passed to the Tokenizer ``__init__`` method.
 
             kwargs: (`optional`) keyword arguments: will be passed to the Tokenizer ``__init__`` method. Can be used to set special tokens like ``bos_token``, ``eos_token``, ``unk_token``, ``sep_token``, ``pad_token``, ``cls_token``, ``mask_token``, ``additional_special_tokens``. See parameters in the doc string of :class:`~transformers.PreTrainedTokenizer` for details.
@@ -174,15 +205,16 @@ class AutoTokenizer:
         if not isinstance(config, PretrainedConfig):
             config = AutoConfig.from_pretrained(pretrained_model_name_or_path, **kwargs)
 
-        if "bert-base-japanese" in pretrained_model_name_or_path:
+        if "bert-base-japanese" in str(pretrained_model_name_or_path):
             return BertJapaneseTokenizer.from_pretrained(pretrained_model_name_or_path, *inputs, **kwargs)
 
-
-        for config_class, tokenizer_class in TOKENIZER_MAPPING.items():
-            if config.tokenizer_type is not None and config.tokenizer_type in tokenizer_class.__name__.lower():
-                return tokenizer_class.from_pretrained(pretrained_model_name_or_path, *inputs, **kwargs)
-            elif isinstance(config, config_class):
-                return tokenizer_class.from_pretrained(pretrained_model_name_or_path, *inputs, **kwargs)
+        use_fast = kwargs.pop("use_fast", False)
+        for config_class, (tokenizer_class_py, tokenizer_class_fast) in TOKENIZER_MAPPING.items():
+            if isinstance(config, config_class):
+                if tokenizer_class_fast and use_fast:
+                    return tokenizer_class_fast.from_pretrained(pretrained_model_name_or_path, *inputs, **kwargs)
+                else:
+                    return tokenizer_class_py.from_pretrained(pretrained_model_name_or_path, *inputs, **kwargs)
 
         raise ValueError(
             "Unrecognized configuration class {} to build an AutoTokenizer.\n"
