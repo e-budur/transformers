@@ -6,57 +6,7 @@ from transformers import (
 
 
 @dataclass
-class GlueAuxiliaryTrainingArguments (TrainingArguments):
-    """
-    RunGlueAuxiliaryArguments is the subset of the arguments we use in the run_glue_auxiliary.py script
-    """
-    # additional arguments required for e-budur
-
-    model_type: str = field(
-        default=None,
-        metadata={
-            "help": (
-                "Model type."
-            )
-        },
-    )
-
-    evaluation_steps: int = field(
-        default=0,
-        metadata={
-            "help": (
-                "Log every X updates steps."
-            )
-        },
-    )
-
-    eval_split_name: str = field(
-        default='dev',
-        metadata={
-            "help": (
-                "The name of the evaluation split."
-            )
-        },
-    )
-
-    dynamic_evaluation_step_regime: bool = field(
-        default=False,
-        metadata={
-            "help": (
-                "Apply dynamic evaluation regime."
-            )
-        },
-    )
-
-    tensorboard_log_dir: str = field(
-        default=None,
-        metadata={
-            "help": (
-                "For logging directory of tensorboard."
-            )
-        },
-    )
-
+class GlueAuxiliaryDataTrainingArguments (DataTrainingArguments):
     zemberek_path: str = field(
         default=None,
         metadata={
@@ -155,3 +105,68 @@ class GlueAuxiliaryTrainingArguments (TrainingArguments):
             )
         },
     )
+
+    do_lower_case: bool = field(
+        default=False,
+        metadata={
+            "help": (
+                "Set this flag if you are using an uncased model."
+            )
+        },
+    )
+
+
+
+
+@dataclass
+class GlueAuxiliaryTrainingArguments (TrainingArguments):
+    """
+    RunGlueAuxiliaryArguments is the subset of the arguments we use in the run_glue_auxiliary.py script
+    """
+    # additional arguments required for e-budur
+
+    model_type: str = field(
+        default=None,
+        metadata={
+            "help": (
+                "Model type."
+            )
+        },
+    )
+
+    evaluation_steps: int = field(
+        default=0,
+        metadata={
+            "help": (
+                "Log every X updates steps."
+            )
+        },
+    )
+
+    eval_split_name: str = field(
+        default='dev',
+        metadata={
+            "help": (
+                "The name of the evaluation split."
+            )
+        },
+    )
+
+    dynamic_evaluation_step_regime: bool = field(
+        default=False,
+        metadata={
+            "help": (
+                "Apply dynamic evaluation regime."
+            )
+        },
+    )
+
+    tensorboard_log_dir: str = field(
+        default=None,
+        metadata={
+            "help": (
+                "For logging directory of tensorboard."
+            )
+        },
+    )
+

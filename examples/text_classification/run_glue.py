@@ -15,7 +15,7 @@
 # limitations under the License.
 """ Finetuning the library models for sequence classification on GLUE (Bert, XLM, XLNet, RoBERTa, Albert, XLM-RoBERTa)."""
 
-from examples.text_classification.run_glue_auxiliary_params import GlueAuxiliaryTrainingArguments
+from examples.text_classification.run_glue_auxiliary_params import *
 import os
 import dataclasses
 import logging
@@ -66,7 +66,7 @@ def main():
     # or by passing the --help flag to this script.
     # We now keep distinct sets of args, for a cleaner separation of concerns.
 
-    parser = HfArgumentParser((ModelArguments, DataTrainingArguments, GlueAuxiliaryTrainingArguments))
+    parser = HfArgumentParser((ModelArguments, GlueAuxiliaryDataTrainingArguments, GlueAuxiliaryTrainingArguments))
 
     if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
         # If we pass only one argument to the script and it's the path to a json file,
