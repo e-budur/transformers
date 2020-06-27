@@ -28,7 +28,7 @@ from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Sequence,
 
 import numpy as np
 
-from .configuration_auto import ALL_PRETRAINED_CONFIG_ARCHIVE_MAP, AutoConfig
+from .configuration_auto import AutoConfig
 from .configuration_utils import PretrainedConfig
 from .data import SquadExample, squad_convert_examples_to_features
 from .file_utils import is_tf_available, is_torch_available
@@ -56,6 +56,7 @@ if is_torch_available():
         AutoModelForQuestionAnswering,
         AutoModelForTokenClassification,
         AutoModelWithLMHead,
+        AutoModelForSeq2SeqLM,
     )
 
 if TYPE_CHECKING:
@@ -323,6 +324,7 @@ class Pipeline(_ScikitCompat):
 
     Base class implementing pipelined operations.
     Pipeline workflow is defined as a sequence of the following operations:
+
         Input -> Tokenization -> Model Inference -> Post-Processing (Task dependent) -> Output
 
     Pipeline supports running on CPU or GPU through the device argument. Users can specify
@@ -454,14 +456,14 @@ class Pipeline(_ScikitCompat):
         """
         return {name: tensor.to(self.device) for name, tensor in inputs.items()}
 
-    def _parse_and_tokenize(self, *args, pad_to_max_length=True, **kwargs):
+    def _parse_and_tokenize(self, *args, padding=True, add_special_tokens=True, **kwargs):
         """
         Parse arguments and tokenize
         """
         # Parse arguments
         inputs = self._args_parser(*args, **kwargs)
-        inputs = self.tokenizer.batch_encode_plus(
-            inputs, add_special_tokens=True, return_tensors=self.framework, pad_to_max_length=pad_to_max_length,
+        inputs = self.tokenizer(
+            inputs, add_special_tokens=add_special_tokens, return_tensors=self.framework, padding=padding,
         )
 
         return inputs
@@ -617,9 +619,11 @@ class TextGenerationPipeline(Pipeline):
             # Manage correct placement of the tensors
             with self.device_placement():
                 if self.model.__class__.__name__ in ["XLNetLMHeadModel", "TransfoXLLMHeadModel"]:
-                    inputs = self._parse_and_tokenize(self.PADDING_TEXT + prompt_text, pad_to_max_length=False)
+                    inputs = self._parse_and_tokenize(
+                        self.PADDING_TEXT + prompt_text, padding=False, add_special_tokens=False
+                    )
                 else:
-                    inputs = self._parse_and_tokenize(prompt_text, pad_to_max_length=False)
+                    inputs = self._parse_and_tokenize(prompt_text, padding=False, add_special_tokens=False)
 
                 # set input_ids to None to allow empty prompt
                 if inputs["input_ids"].shape[-1] == 0:
@@ -712,10 +716,23 @@ class TextClassificationPipeline(Pipeline):
             on the associated CUDA device id.
     """
 
+    def __init__(self, return_all_scores: bool = False, **kwargs):
+        super().__init__(**kwargs)
+
+        self.return_all_scores = return_all_scores
+
     def __call__(self, *args, **kwargs):
         outputs = super().__call__(*args, **kwargs)
         scores = np.exp(outputs) / np.exp(outputs).sum(-1, keepdims=True)
-        return [{"label": self.model.config.id2label[item.argmax()], "score": item.max().item()} for item in scores]
+        if self.return_all_scores:
+            return [
+                [{"label": self.model.config.id2label[i], "score": score.item()} for i, score in enumerate(item)]
+                for item in scores
+            ]
+        else:
+            return [
+                {"label": self.model.config.id2label[item.argmax()], "score": item.max().item()} for item in scores
+            ]
 
 
 class FillMaskPipeline(Pipeline):
@@ -808,7 +825,14 @@ class FillMaskPipeline(Pipeline):
                 tokens[masked_index] = p
                 # Filter padding out:
                 tokens = tokens[np.where(tokens != self.tokenizer.pad_token_id)]
-                result.append({"sequence": self.tokenizer.decode(tokens), "score": v, "token": p})
+                result.append(
+                    {
+                        "sequence": self.tokenizer.decode(tokens),
+                        "score": v,
+                        "token": p,
+                        "token_str": self.tokenizer.convert_ids_to_tokens(p),
+                    }
+                )
 
             # Append
             results += [result]
@@ -818,7 +842,7 @@ class FillMaskPipeline(Pipeline):
         return results
 
 
-class NerPipeline(Pipeline):
+class TokenClassificationPipeline(Pipeline):
     """
     Named Entity Recognition pipeline using ModelForTokenClassification head. See the
     `named entity recognition usage <../usage.html#named-entity-recognition>`__ examples for more information.
@@ -893,11 +917,8 @@ class NerPipeline(Pipeline):
             # Manage correct placement of the tensors
             with self.device_placement():
 
-                tokens = self.tokenizer.encode_plus(
-                    sentence,
-                    return_attention_mask=False,
-                    return_tensors=self.framework,
-                    max_length=self.tokenizer.max_len,
+                tokens = self.tokenizer(
+                    sentence, return_attention_mask=False, return_tensors=self.framework, truncation=True,
                 )
 
                 # Forward
@@ -982,7 +1003,7 @@ class NerPipeline(Pipeline):
         return entity_group
 
 
-TokenClassificationPipeline = NerPipeline
+NerPipeline = TokenClassificationPipeline
 
 
 class QuestionAnsweringArgumentHandler(ArgumentHandler):
@@ -1160,12 +1181,12 @@ class QuestionAnsweringPipeline(Pipeline):
         examples = self._args_parser(*args, **kwargs)
         features_list = [
             squad_convert_examples_to_features(
-                [example],
-                self.tokenizer,
-                kwargs["max_seq_len"],
-                kwargs["doc_stride"],
-                kwargs["max_question_len"],
-                False,
+                examples=[example],
+                tokenizer=self.tokenizer,
+                max_seq_length=kwargs["max_seq_len"],
+                doc_stride=kwargs["doc_stride"],
+                max_query_length=kwargs["max_question_len"],
+                is_training=False,
                 tqdm_enabled=False,
             )
             for example in examples
@@ -1365,6 +1386,10 @@ class SummarizationPipeline(Pipeline):
             on the associated CUDA device id.
     """
 
+    def __init__(self, **kwargs):
+        kwargs.update(task="summarization")
+        super().__init__(**kwargs)
+
     def __call__(
         self, *documents, return_tensors=False, return_text=True, clean_up_tokenization_spaces=False, **generate_kwargs
     ):
@@ -1400,11 +1425,11 @@ class SummarizationPipeline(Pipeline):
             ), "Please make sure that the tokenizer has a pad_token_id when using a batch input"
 
             documents = ([prefix + document for document in documents[0]],)
-            pad_to_max_length = True
+            padding = True
 
         elif isinstance(documents[0], str):
             documents = (prefix + documents[0],)
-            pad_to_max_length = False
+            padding = False
         else:
             raise ValueError(
                 " `documents[0]`: {} have the wrong format. The should be either of type `str` or type `list`".format(
@@ -1413,7 +1438,7 @@ class SummarizationPipeline(Pipeline):
             )
 
         with self.device_placement():
-            inputs = self._parse_and_tokenize(*documents, pad_to_max_length=pad_to_max_length)
+            inputs = self._parse_and_tokenize(*documents, padding=padding)
 
             if self.framework == "pt":
                 inputs = self.ensure_tensor_on_device(**inputs)
@@ -1518,11 +1543,11 @@ class TranslationPipeline(Pipeline):
                 self.tokenizer.pad_token_id is not None
             ), "Please make sure that the tokenizer has a pad_token_id when using a batch input"
             args = ([prefix + text for text in args[0]],)
-            pad_to_max_length = True
+            padding = True
 
         elif isinstance(args[0], str):
             args = (prefix + args[0],)
-            pad_to_max_length = False
+            padding = False
         else:
             raise ValueError(
                 " `documents[0]`: {} have the wrong format. The should be either of type `str` or type `list`".format(
@@ -1531,7 +1556,7 @@ class TranslationPipeline(Pipeline):
             )
 
         with self.device_placement():
-            inputs = self._parse_and_tokenize(*args, pad_to_max_length=pad_to_max_length)
+            inputs = self._parse_and_tokenize(*args, padding=padding)
 
             if self.framework == "pt":
                 inputs = self.ensure_tensor_on_device(**inputs)
@@ -1572,11 +1597,7 @@ SUPPORTED_TASKS = {
         "impl": FeatureExtractionPipeline,
         "tf": TFAutoModel if is_tf_available() else None,
         "pt": AutoModel if is_torch_available() else None,
-        "default": {
-            "model": {"pt": "distilbert-base-cased", "tf": "distilbert-base-cased"},
-            "config": None,
-            "tokenizer": "distilbert-base-cased",
-        },
+        "default": {"model": {"pt": "distilbert-base-cased", "tf": "distilbert-base-cased"}},
     },
     "sentiment-analysis": {
         "impl": TextClassificationPipeline,
@@ -1587,12 +1608,10 @@ SUPPORTED_TASKS = {
                 "pt": "distilbert-base-uncased-finetuned-sst-2-english",
                 "tf": "distilbert-base-uncased-finetuned-sst-2-english",
             },
-            "config": "distilbert-base-uncased-finetuned-sst-2-english",
-            "tokenizer": "distilbert-base-uncased",
         },
     },
     "ner": {
-        "impl": NerPipeline,
+        "impl": TokenClassificationPipeline,
         "tf": TFAutoModelForTokenClassification if is_tf_available() else None,
         "pt": AutoModelForTokenClassification if is_torch_available() else None,
         "default": {
@@ -1600,8 +1619,6 @@ SUPPORTED_TASKS = {
                 "pt": "dbmdz/bert-large-cased-finetuned-conll03-english",
                 "tf": "dbmdz/bert-large-cased-finetuned-conll03-english",
             },
-            "config": "dbmdz/bert-large-cased-finetuned-conll03-english",
-            "tokenizer": "bert-large-cased",
         },
     },
     "question-answering": {
@@ -1610,61 +1627,43 @@ SUPPORTED_TASKS = {
         "pt": AutoModelForQuestionAnswering if is_torch_available() else None,
         "default": {
             "model": {"pt": "distilbert-base-cased-distilled-squad", "tf": "distilbert-base-cased-distilled-squad"},
-            "config": None,
-            "tokenizer": ("distilbert-base-cased", {"use_fast": False}),
         },
     },
     "fill-mask": {
         "impl": FillMaskPipeline,
         "tf": TFAutoModelWithLMHead if is_tf_available() else None,
         "pt": AutoModelWithLMHead if is_torch_available() else None,
-        "default": {
-            "model": {"pt": "distilroberta-base", "tf": "distilroberta-base"},
-            "config": None,
-            "tokenizer": ("distilroberta-base", {"use_fast": False}),
-        },
+        "default": {"model": {"pt": "distilroberta-base", "tf": "distilroberta-base"}},
     },
     "summarization": {
         "impl": SummarizationPipeline,
         "tf": TFAutoModelWithLMHead if is_tf_available() else None,
-        "pt": AutoModelWithLMHead if is_torch_available() else None,
-        "default": {"model": {"pt": "bart-large-cnn", "tf": "t5-small"}, "config": None, "tokenizer": None},
+        "pt": AutoModelForSeq2SeqLM if is_torch_available() else None,
+        "default": {"model": {"pt": "sshleifer/distilbart-cnn-12-6", "tf": "t5-small"}},
     },
     "translation_en_to_fr": {
         "impl": TranslationPipeline,
         "tf": TFAutoModelWithLMHead if is_tf_available() else None,
         "pt": AutoModelWithLMHead if is_torch_available() else None,
-        "default": {
-            "model": {"pt": "t5-base", "tf": "t5-base"},
-            "config": None,
-            "tokenizer": ("t5-base", {"use_fast": False}),
-        },
+        "default": {"model": {"pt": "t5-base", "tf": "t5-base"}},
     },
     "translation_en_to_de": {
         "impl": TranslationPipeline,
         "tf": TFAutoModelWithLMHead if is_tf_available() else None,
         "pt": AutoModelWithLMHead if is_torch_available() else None,
-        "default": {
-            "model": {"pt": "t5-base", "tf": "t5-base"},
-            "config": None,
-            "tokenizer": ("t5-base", {"use_fast": False}),
-        },
+        "default": {"model": {"pt": "t5-base", "tf": "t5-base"}},
     },
     "translation_en_to_ro": {
         "impl": TranslationPipeline,
         "tf": TFAutoModelWithLMHead if is_tf_available() else None,
         "pt": AutoModelWithLMHead if is_torch_available() else None,
-        "default": {
-            "model": {"pt": "t5-base", "tf": "t5-base"},
-            "config": None,
-            "tokenizer": ("t5-base", {"use_fast": False}),
-        },
+        "default": {"model": {"pt": "t5-base", "tf": "t5-base"}},
     },
     "text-generation": {
         "impl": TextGenerationPipeline,
         "tf": TFAutoModelWithLMHead if is_tf_available() else None,
         "pt": AutoModelWithLMHead if is_torch_available() else None,
-        "default": {"model": {"pt": "gpt2", "tf": "gpt2"}, "config": None, "tokenizer": "gpt2"},
+        "default": {"model": {"pt": "gpt2", "tf": "gpt2"}},
     },
 }
 
@@ -1693,11 +1692,12 @@ def pipeline(
 
             - "feature-extraction": will return a :class:`~transformers.FeatureExtractionPipeline`
             - "sentiment-analysis": will return a :class:`~transformers.TextClassificationPipeline`
-            - "ner": will return a :class:`~transformers.NerPipeline`
+            - "ner": will return a :class:`~transformers.TokenClassificationPipeline`
             - "question-answering": will return a :class:`~transformers.QuestionAnsweringPipeline`
             - "fill-mask": will return a :class:`~transformers.FillMaskPipeline`
             - "summarization": will return a :class:`~transformers.SummarizationPipeline`
             - "translation_xx_to_yy": will return a :class:`~transformers.TranslationPipeline`
+            - "text-generation": will return a :class:`~transformers.TextGenerationPipeline`
         model (:obj:`str` or :obj:`~transformers.PreTrainedModel` or :obj:`~transformers.TFPreTrainedModel`, `optional`, defaults to :obj:`None`):
             The model that will be used by the pipeline to make predictions. This can be :obj:`None`,
             a model identifier or an actual pre-trained model inheriting from
@@ -1754,14 +1754,13 @@ def pipeline(
 
     # Use default model/config/tokenizer for the task if no model is provided
     if model is None:
-        models, config, tokenizer = [targeted_task["default"][k] for k in ["model", "config", "tokenizer"]]
-        model = models[framework]
+        model = targeted_task["default"]["model"][framework]
 
     # Try to infer tokenizer from model or config name (if provided as str)
     if tokenizer is None:
-        if isinstance(model, str) and model in ALL_PRETRAINED_CONFIG_ARCHIVE_MAP:
+        if isinstance(model, str):
             tokenizer = model
-        elif isinstance(config, str) and config in ALL_PRETRAINED_CONFIG_ARCHIVE_MAP:
+        elif isinstance(config, str):
             tokenizer = config
         else:
             # Impossible to guest what is the right tokenizer here

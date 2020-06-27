@@ -137,8 +137,11 @@ def _glue_convert_examples_to_features(
 
     labels = [label_from_example(example) for example in examples]
 
-    batch_encoding = tokenizer.batch_encode_plus(
-        [(example.text_a, example.text_b) for example in examples], max_length=max_length, pad_to_max_length=True,
+    batch_encoding = tokenizer(
+        [(example.text_a, example.text_b) for example in examples],
+        max_length=max_length,
+        padding="max_length",
+        truncation=True,
     )
 
     features = []
@@ -332,11 +335,12 @@ class Sst2Processor(DataProcessor):
     def _create_examples(self, lines, set_type):
         """Creates examples for the training, dev and test sets."""
         examples = []
+        text_index = 1 if set_type == "test" else 0
         for (i, line) in enumerate(lines):
             if i == 0:
                 continue
             guid = "%s-%s" % (set_type, i)
-            text_a = line[0]
+            text_a = line[text_index]
             label = None if set_type == "test" else line[1]
             examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
         return examples

@@ -84,8 +84,9 @@ extras["torch"] = ["torch"]
 extras["serving"] = ["pydantic", "uvicorn", "fastapi", "starlette"]
 extras["all"] = extras["serving"] + ["tensorflow", "torch"]
 
-extras["testing"] = ["pytest", "pytest-xdist", "timeout-decorator"]
-extras["docs"] = ["recommonmark", "sphinx", "sphinx-markdown-tables", "sphinx-rtd-theme"]
+extras["testing"] = ["pytest", "pytest-xdist", "timeout-decorator", "psutil"]
+# sphinx-rtd-theme==0.5.0 introduced big changes in the style.
+extras["docs"] = ["recommonmark", "sphinx", "sphinx-markdown-tables", "sphinx-rtd-theme==0.4.3", "sphinx-copybutton"]
 extras["quality"] = [
     "black",
     "isort @ git+git://github.com/timothycrosley/isort.git@e63ae06ec7d70b06df9e528357650281a3d3ec22#egg=isort",
@@ -95,7 +96,7 @@ extras["dev"] = extras["testing"] + extras["quality"] + ["mecab-python3", "sciki
 
 setup(
     name="transformers",
-    version="2.10.0",
+    version="2.11.0",
     author="Thomas Wolf, Lysandre Debut, Victor Sanh, Julien Chaumond, Sam Shleifer, Patrick von Platen, Google AI Language Team Authors, Open AI team Authors, Facebook AI Authors, Carnegie Mellon University Authors",
     author_email="thomas@huggingface.co",
     description="State-of-the-art Natural Language Processing for TensorFlow 2.0 and PyTorch",
@@ -108,7 +109,7 @@ setup(
     packages=find_packages("src"),
     install_requires=[
         "numpy",
-        "tokenizers == 0.7.0",
+        "tokenizers == 0.8.0-rc3",
         # dataclasses for Python versions that don't have it
         "dataclasses;python_version<'3.7'",
         # utilities from PyPA to e.g. compare versions
@@ -127,7 +128,9 @@ setup(
         "sacremoses",
     ],
     extras_require=extras,
-    scripts=["transformers-cli"],
+    entry_points={
+        "console_scripts": ["transformers-cli=transformers.commands.transformers_cli:main"]
+    },
     python_requires=">=3.6.0",
     classifiers=[
         "Development Status :: 5 - Production/Stable",
