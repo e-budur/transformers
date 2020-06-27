@@ -1,7 +1,12 @@
 from dataclasses import dataclass, field
+from transformers import GlueDataTrainingArguments as DataTrainingArguments
+from transformers import (
+    TrainingArguments,
+)
+
 
 @dataclass
-class RunGlueAuxiliaryArguments:
+class GlueAuxiliaryTrainingArguments (TrainingArguments):
     """
     RunGlueAuxiliaryArguments is the subset of the arguments we use in the run_glue_auxiliary.py script
     """
