@@ -1,5 +1,4 @@
 import logging
-import os
 import time
 from dataclasses import dataclass, field
 from enum import Enum
@@ -15,7 +14,7 @@ from ...tokenization_utils import PreTrainedTokenizer
 from ...tokenization_xlm_roberta import XLMRobertaTokenizer
 from ..processors.glue import glue_convert_examples_to_features, glue_output_modes, glue_processors
 from ..processors.utils import InputFeatures
-
+from examples.text_classification.berturk_preprocessor import *
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +75,15 @@ class GlueDataset(Dataset):
         self.args = args
         self.processor = glue_processors[args.task_name]()
         self.output_mode = glue_output_modes[args.task_name]
+        preprocessing_type = "default"
+
+        if args.do_morphological_preprocessing:
+            preprocessing_type = args.morphological_parser_name
+        elif args.do_ngram_preprocessing:
+            preprocessing_type = "ngram-" + str(args.ngram_size)
+        elif args.do_sentencepiece_preprocessing:
+            preprocessing_type = "sentencepiece"
+
         if isinstance(mode, str):
             try:
                 mode = Split[mode]
@@ -85,8 +93,8 @@ class GlueDataset(Dataset):
         cached_features_file = os.path.join(
             args.data_dir,
             cache_dir if cache_dir is not None else args.data_dir,
-            "cached_{}_{}_{}_{}".format(
-                mode.value, tokenizer.__class__.__name__, str(args.max_seq_length), args.task_name,
+            "cached_{}_{}_{}_{}_{}".format(
+                mode.value, tokenizer.__class__.__name__, str(args.max_seq_length), args.task_name,preprocessing_type
             ),
         )
         label_list = self.processor.get_labels()
@@ -121,6 +129,8 @@ class GlueDataset(Dataset):
                     examples = self.processor.get_test_examples(args.data_dir)
                 else:
                     examples = self.processor.get_train_examples(args.data_dir)
+
+                preprocess_examples(examples, args)
                 if limit_length is not None:
                     examples = examples[:limit_length]
                 self.features = glue_convert_examples_to_features(

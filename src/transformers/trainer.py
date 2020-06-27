@@ -497,7 +497,7 @@ class Trainer:
 
                         self._log(logs)
 
-                        if self.args.evaluate_during_training:
+                        if self.args.evaluate_during_training and self.global_step % self.args.evaluation_steps == 0:
                             self.evaluate()
 
                     if self.args.save_steps > 0 and self.global_step % self.args.save_steps == 0:

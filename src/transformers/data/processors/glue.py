@@ -584,6 +584,12 @@ glue_tasks_num_labels = {
     "qnli": 2,
     "rte": 2,
     "wnli": 2,
+
+    "mnli-nmt-amzn-tr": 3,
+    "mnli-nmt-amzn-tr-2": 3,
+    "mnli-mm": 3,
+    "mnli-mm-nmt-amzn-tr": 3,
+    "mnli-mm-nmt-amzn-tr-2": 3
 }
 
 glue_processors = {
