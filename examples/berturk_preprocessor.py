@@ -10,6 +10,8 @@ from turkish_morphology import analysis_pb2, analyze, decompose
 import sentencepiece as spm
 from subprocess import call, Popen, PIPE, check_call, check_output, CalledProcessError
 import traceback
+import six
+
 def align_cases(input_word_form, parsed_word_form):
 
     input_word_form = unicode_tr(input_word_form)
@@ -209,12 +211,38 @@ def parse_morphologically_boun(examples, params):
 
     load_examples_from_file(examples, cleaned_examples_file_path)
 
+def convert_to_unicode(text):
+  """Converts `text` to Unicode (if it's not already), assuming utf-8 input."""
+  if six.PY3:
+    if isinstance(text, str):
+      return text
+    elif isinstance(text, bytes):
+      return text.decode("utf-8", "ignore")
+    else:
+      raise ValueError("Unsupported string type: %s" % (type(text)))
+  elif six.PY2:
+    if isinstance(text, str):
+      return text.decode("utf-8", "ignore")
+    elif isinstance(text, unicode):
+      return text
+    else:
+      raise ValueError("Unsupported string type: %s" % (type(text)))
+  else:
+    raise ValueError("Not running on Python2 or Python 3?")
+
+def tokenize_with_sentencepiece(sp_model, text):
+    output_ids = sp_model.SampleEncodeAsIds(text, alpha=0.2, nbest_size=64)# TODO: the hyperparameters alpha and nbest_size should be bound to the input arguments.
+    output_tokens = [convert_to_unicode(sp_model.IdToPiece(i))
+                    if i != 0 else '[UNK]'
+                    for i in output_ids]
+    return output_tokens
+
 def parse_sentencepiece(sentence, params):
     if sentence.strip() == u'':
         return sentence
     if params['lower_case']:
         sentence = sentence.lower() # this line should be improved by using the lower method of unicode_tr library
-    sentence_pieces = params['sp_model'].EncodeAsPieces(sentence)
+    sentence_pieces = tokenize_with_sentencepiece(params['sp_model'], sentence)
     parsed_sentence = ' '.join(sentence_pieces)
     return parsed_sentence
 
