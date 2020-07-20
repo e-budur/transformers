@@ -231,7 +231,7 @@ def convert_to_unicode(text):
     raise ValueError("Not running on Python2 or Python 3?")
 
 def tokenize_with_sentencepiece(sp_model, text):
-    output_ids = sp_model.SampleEncodeAsIds(text, alpha=0.5, nbest_size=-1)# TODO: the hyperparameters alpha and nbest_size should be bound to the input arguments.
+    output_ids = sp_model.SampleEncodeAsIds(text, alpha=0.75, nbest_size=64)# TODO: the hyperparameters alpha and nbest_size should be bound to the input arguments.
     output_tokens = [convert_to_unicode(sp_model.IdToPiece(i))
                     if i != 0 else '[UNK]'
                     for i in output_ids]
