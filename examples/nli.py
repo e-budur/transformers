@@ -604,3 +604,19 @@ class SentencePiecePreprocessor(object):
                         for i in output_ids]
         preprocessed_text = ' '.join(output_tokens) 
         return preprocessed_text
+
+from transformers import BertTokenizer
+class WordpiecePreprocessor(object):
+    def __init__(self, tokenizer_name=None, model_name_or_path=None, do_lower_case=False, cache_dir=None):
+        self.tokenizer = BertTokenizer.from_pretrained(
+            tokenizer_name if tokenizer_name else model_name_or_path,
+            do_lower_case=do_lower_case,
+            cache_dir=cache_dir if cache_dir else None,
+        )
+
+    def preprocess(self, text):
+        inputs = self.tokenizer.encode_plus(text, None, add_special_tokens=False, max_length=128, )
+        input_ids, token_type_ids = inputs["input_ids"], inputs["token_type_ids"]
+        output_tokens = self.tokenizer.convert_ids_to_tokens(input_ids)
+        preprocessed_text = ' '.join(output_tokens)
+        return preprocessed_text
