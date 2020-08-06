@@ -171,7 +171,7 @@ class NLIExample(object):
                 v = str2tree(v, binarize=True)
             elif '_parse' in k:
                 v = str2tree(v, binarize=False)
-            setattr(self, k, v)
+            setattr(self, k.replace('-', '_'), v)
 
     def __str__(self):
         return repr(self)
@@ -180,6 +180,22 @@ class NLIExample(object):
         d = {k: v for k, v in self.__dict__.items() if not k.startswith('__')}
         return """"NLIExample({})""".format(d)
 
+    def get_sentence1(self):
+        return self.sentence1
+
+    def get_sentence2(self):
+        return self.sentence2
+
+class NLITRExample(NLIExample):
+
+    def __init__(self, d):
+        super(NLITRExample, self).__init__(d)
+
+    def get_sentence1(self):
+        return self.translate_sentence1
+
+    def get_sentence2(self):
+        return self.translate_sentence2
 
 class NLIReader(object):
     """Reader for SNLI/MultiNLI data.
@@ -205,12 +221,14 @@ class NLIReader(object):
             filter_unlabeled=True,
             samp_percentage=None,
             random_state=None,
-            gold_label_attr_name='gold_label'):
+            gold_label_attr_name='gold_label',
+            example_class=NLIExample):
         self.src_filename = src_filename
         self.filter_unlabeled = filter_unlabeled
         self.samp_percentage = samp_percentage
         self.random_state = random_state
         self.gold_label_attr_name = gold_label_attr_name
+        self.example_class = example_class
 
     def read(self):
         """Primary interface.
@@ -229,7 +247,7 @@ class NLIReader(object):
             for line in open(src_filename, encoding='utf8'):
                 if (not self.samp_percentage) or random.random() <= self.samp_percentage:
                     d = json.loads(line)
-                    ex = NLIExample(d)
+                    ex = self.example_class(d)
                     gold_label = getattr(ex, self.gold_label_attr_name)
                     if (not self.filter_unlabeled) or gold_label != '-':
                         yield ex
@@ -240,40 +258,74 @@ class NLIReader(object):
 
 
 
-class SNLITrainReader(NLIReader):
+class SNLITRTrainReader(NLIReader):
     def __init__(self, snli_home, **kwargs):
         src_filename = os.path.join(
             snli_home, "snli_train_translation.jsonl")
+        super(SNLITRTrainReader, self).__init__(src_filename, example_class=NLITRExample, **kwargs)
+
+
+class SNLITRDevReader(NLIReader):
+    def __init__(self, snli_home, **kwargs):
+        src_filename = os.path.join(
+            snli_home, "snli_dev_translation.jsonl")
+        super(SNLITRDevReader, self).__init__(src_filename, example_class=NLITRExample, **kwargs)
+
+
+class MultiNLITRTrainReader(NLIReader):
+    def __init__(self, snli_home, **kwargs):
+        src_filename = os.path.join(
+            snli_home, "multinli_train_translation.jsonl")
+        super(MultiNLITRTrainReader, self).__init__(src_filename, example_class=NLITRExample, **kwargs)
+
+
+class MultiNLITRMatchedDevReader(NLIReader):
+    def __init__(self, multinli_home, **kwargs):
+        src_filename = os.path.join(
+            multinli_home, "multinli_dev_matched_translation.jsonl")
+        super(MultiNLITRMatchedDevReader, self).__init__(src_filename, example_class=NLITRExample, **kwargs)
+
+
+class MultiNLITRMismatchedDevReader(NLIReader):
+    def __init__(self, multinli_home, **kwargs):
+        src_filename = os.path.join(
+            multinli_home, "multinli_dev_mismatched_translation.jsonl")
+        super(MultiNLITRMismatchedDevReader, self).__init__(src_filename, example_class=NLITRExample, **kwargs)
+
+
+class SNLITrainReader(NLIReader):
+    def __init__(self, snli_home, **kwargs):
+        src_filename = os.path.join(
+            snli_home, "snli_1.0_train.jsonl")
         super(SNLITrainReader, self).__init__(src_filename, **kwargs)
 
 
 class SNLIDevReader(NLIReader):
     def __init__(self, snli_home, **kwargs):
         src_filename = os.path.join(
-            snli_home, "snli_dev_translation.jsonl")
+            snli_home, "snli_1.0_dev.jsonl")
         super(SNLIDevReader, self).__init__(src_filename, **kwargs)
 
 
 class MultiNLITrainReader(NLIReader):
     def __init__(self, snli_home, **kwargs):
         src_filename = os.path.join(
-            snli_home, "multinli_train_translation.jsonl")
+            snli_home, "multinli_1.0_train.jsonl")
         super(MultiNLITrainReader, self).__init__(src_filename, **kwargs)
 
 
 class MultiNLIMatchedDevReader(NLIReader):
     def __init__(self, multinli_home, **kwargs):
         src_filename = os.path.join(
-            multinli_home, "multinli_dev_matched_translation.jsonl")
+            multinli_home, "multinli_1.0_dev_matched.jsonl")
         super(MultiNLIMatchedDevReader, self).__init__(src_filename, **kwargs)
 
 
 class MultiNLIMismatchedDevReader(NLIReader):
     def __init__(self, multinli_home, **kwargs):
         src_filename = os.path.join(
-            multinli_home, "multinli_dev_mismatched_translation.jsonl")
+            multinli_home, "multinli_1.0_dev_mismatched.jsonl")
         super(MultiNLIMismatchedDevReader, self).__init__(src_filename, **kwargs)
-
 
 class ANLIReader(NLIReader):
     def __init__(self, anli_home, anli_type, rounds=(1,2,3), **kwargs):
@@ -340,7 +392,7 @@ def read_annotated_subset(src_filename, multinli_home):
     return data
 
 
-def build_dataset(reader, phi, vectorizer=None, vectorize=True):
+def build_dataset(reader, phi, preprocessor=None, vectorizer=None, vectorize=True):
     """Create a dataset for training classifiers using `sklearn`.
 
     Parameters
@@ -375,9 +427,12 @@ def build_dataset(reader, phi, vectorizer=None, vectorize=True):
     labels = []
     raw_examples = []
     for ex in reader.read():
-        t1 = ex.sentence1_parse
-        t2 = ex.sentence2_parse
+        t1 = ex.get_sentence1()
+        t2 = ex.get_sentence2()
         label = ex.gold_label
+        if preprocessor is not None:
+            t1 = preprocessor.preprocess(t1)
+            t2 = preprocessor.preprocess(t2)
         d = phi(t1, t2)
         feats.append(d)
         labels.append(label)
@@ -403,6 +458,7 @@ def experiment(
         assess_reader=None,
         train_size=0.7,
         score_func=utils.safe_macro_f1,
+        preprocessor=None,
         vectorize=True,
         verbose=True,
         random_state=None):
@@ -469,6 +525,7 @@ def experiment(
     train = build_dataset(
         train_reader,
         phi,
+        preprocessor=preprocessor,
         vectorizer=None,
         vectorize=vectorize)
     # Manage the assessment set-up:
@@ -489,6 +546,7 @@ def experiment(
         assess = build_dataset(
             assess_reader,
             phi,
+            preprocessor=preprocessor,
             vectorizer=train['vectorizer'],
             vectorize=vectorize)
         X_assess, y_assess = assess['X'], assess['y']
@@ -508,3 +566,41 @@ def experiment(
         'predictions': predictions,
         'metric': score_func.__name__,
         'score': score_func(y_assess, predictions)}
+
+import sentencepiece as spm
+import six
+class SentencePiecePreprocessor(object):
+    
+    def __init__(self, sp_model_path, alpha=1, nbest_size=-1):
+        self.sp_model = spm.SentencePieceProcessor()
+        self.sp_model.Load(sp_model_path)
+        self.alpha=alpha
+        self.nbest_size=nbest_size
+    
+    def convert_to_unicode(self, text):
+          """Converts `text` to Unicode (if it's not already), assuming utf-8 input."""
+          if six.PY3:
+            if isinstance(text, str):
+              return text
+            elif isinstance(text, bytes):
+              return text.decode("utf-8", "ignore")
+            else:
+              raise ValueError("Unsupported string type: %s" % (type(text)))
+          elif six.PY2:
+            if isinstance(text, str):
+              return text.decode("utf-8", "ignore")
+            elif isinstance(text, unicode):
+              return text
+            else:
+              raise ValueError("Unsupported string type: %s" % (type(text)))
+          else:
+            raise ValueError("Not running on Python2 or Python 3?")
+
+        
+    def preprocess(self, text):
+        output_ids = self.sp_model.SampleEncodeAsIds(text, alpha=self.alpha, nbest_size=self.nbest_size)
+        output_tokens = [self.convert_to_unicode(self.sp_model.IdToPiece(i))
+                        if i != 0 else '[UNK]'
+                        for i in output_ids]
+        preprocessed_text = ' '.join(output_tokens) 
+        return preprocessed_text
