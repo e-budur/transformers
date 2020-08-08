@@ -172,6 +172,7 @@ class AlbertTokenizer(PreTrainedTokenizer):
             else:
                 new_pieces.append(piece)
         '''
+        new_pieces = pieces
         # added by e-budur for logging some samples from the preprocessed inputs
         if random.random() < 0.01:  # print some examples of the preprocessed sentences
             print(u"\n{}\nOriginal line: {}\nProcessed line: {}\n{}\n ".format(
