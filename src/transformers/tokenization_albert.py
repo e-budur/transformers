@@ -155,6 +155,9 @@ class AlbertTokenizer(PreTrainedTokenizer):
             pieces = self.sp_model.EncodeAsPieces(text)
         else:
             pieces = self.sp_model.SampleEncodeAsPieces(text, 64, 0.1)
+
+        #skipped/commented by e-budur to align the preprocessing pipeline with the one in pretraining
+        '''
         new_pieces = []
         for piece in pieces:
             if len(piece) > 1 and piece[-1] == str(",") and piece[-2].isdigit():
@@ -168,7 +171,7 @@ class AlbertTokenizer(PreTrainedTokenizer):
                 new_pieces.extend(cur_pieces)
             else:
                 new_pieces.append(piece)
-
+        '''
         # added by e-budur for logging some samples from the preprocessed inputs
         if random.random() < 0.01:  # print some examples of the preprocessed sentences
             print(u"\n{}\nOriginal line: {}\nProcessed line: {}\n{}\n ".format(
