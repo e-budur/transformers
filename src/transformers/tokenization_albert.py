@@ -106,7 +106,9 @@ class AlbertTokenizer(PreTrainedTokenizer):
         self.remove_space = remove_space
         self.keep_accents = keep_accents
         self.vocab_file = vocab_file
-
+        self.sample = kwargs.get('sample', False)
+        self.alpha = kwargs.get('alpha', 1.0)
+        self.nbest = kwargs.get('nbest', 64)
         self.sp_model = spm.SentencePieceProcessor()
         self.sp_model.Load(vocab_file)
 
@@ -151,10 +153,10 @@ class AlbertTokenizer(PreTrainedTokenizer):
         """ Tokenize a string. """
         text = self.preprocess_text(input_text)
 
-        if not sample:
+        if not self.sample:
             pieces = self.sp_model.EncodeAsPieces(text)
         else:
-            pieces = self.sp_model.SampleEncodeAsPieces(text, 64, 0.1)
+            pieces = self.sp_model.SampleEncodeAsPieces(text, self.nbest, self.alpha)
 
         #skipped/commented by e-budur to align the preprocessing pipeline with the one in pretraining
         '''
