@@ -109,6 +109,8 @@ class AlbertTokenizer(PreTrainedTokenizer):
         self.sample = kwargs.get('sample', False)
         self.alpha = kwargs.get('alpha', 1.0)
         self.nbest = kwargs.get('nbest', 64)
+        print(u"sample:{}\nalpha:{}\nnbest:{}\nvocab_file:{}\n".format(self.sample, self.alpha, self.nbest, vocab_file))
+
         self.sp_model = spm.SentencePieceProcessor()
         self.sp_model.Load(vocab_file)
 
