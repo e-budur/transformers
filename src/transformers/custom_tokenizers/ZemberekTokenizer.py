@@ -1,6 +1,6 @@
 from jpype import *
 import os
-from custom_tokenizers.CustomTokenizerUtils import *
+from transformers.custom_tokenizers.CustomTokenizerUtils import *
 import random
 class ZemberekTokenizer(object):
 

@@ -16,15 +16,12 @@
 
 
 import logging
-import os
 import unicodedata
 from shutil import copyfile
 
 from .tokenization_utils import PreTrainedTokenizer
-import random
-import collections
-from transformers.ZemberekTokenizer import  *
-from transformers.CustomTokenizerUtils import *
+from transformers.custom_tokenizers.ZemberekTokenizer import  *
+from transformers.custom_tokenizers.CustomTokenizerUtils import *
 logger = logging.getLogger(__name__)
 
 PRETRAINED_POSITIONAL_EMBEDDINGS_SIZES = {
