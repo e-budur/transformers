@@ -20,6 +20,7 @@ else:
 import logging
 
 from .configuration_albert import ALBERT_PRETRAINED_CONFIG_ARCHIVE_MAP, AlbertConfig
+from .configuration_morphology import BertMorphologyConfig
 from .configuration_auto import ALL_PRETRAINED_CONFIG_ARCHIVE_MAP, AutoConfig
 from .configuration_bert import BERT_PRETRAINED_CONFIG_ARCHIVE_MAP, BertConfig
 from .configuration_camembert import CAMEMBERT_PRETRAINED_CONFIG_ARCHIVE_MAP, CamembertConfig
@@ -105,6 +106,7 @@ from .pipelines import (
     pipeline,
 )
 from .tokenization_albert import AlbertTokenizer
+from .tokenization_morphology import BertMorphologyTokenizer
 from .tokenization_auto import AutoTokenizer
 from .tokenization_bert import BasicTokenizer, BertTokenizer, BertTokenizerFast, WordpieceTokenizer
 from .tokenization_bert_japanese import BertJapaneseTokenizer, CharacterTokenizer, MecabTokenizer

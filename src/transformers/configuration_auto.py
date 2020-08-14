@@ -18,6 +18,7 @@
 import logging
 from collections import OrderedDict
 
+from .configuration_morphology import BertMorphologyConfig
 from .configuration_albert import ALBERT_PRETRAINED_CONFIG_ARCHIVE_MAP, AlbertConfig
 from .configuration_bert import BERT_PRETRAINED_CONFIG_ARCHIVE_MAP, BertConfig
 from .configuration_camembert import CAMEMBERT_PRETRAINED_CONFIG_ARCHIVE_MAP, CamembertConfig
@@ -65,6 +66,7 @@ CONFIG_MAPPING = OrderedDict(
         ("t5", T5Config,),
         ("distilbert", DistilBertConfig,),
         ("albert", AlbertConfig,),
+        ("berturk-morph", BertMorphologyConfig,),
         ("camembert", CamembertConfig,),
         ("xlm-roberta", XLMRobertaConfig,),
         ("roberta", RobertaConfig,),

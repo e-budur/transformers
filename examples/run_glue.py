@@ -33,6 +33,7 @@ from transformers import (
     AlbertTokenizer,
     BertConfig,
     BertForSequenceClassification,
+    BertMorphologyTokenizer,
     BertTokenizer,
     DistilBertConfig,
     DistilBertForSequenceClassification,

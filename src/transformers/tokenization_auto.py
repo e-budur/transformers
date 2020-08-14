@@ -19,6 +19,7 @@ import logging
 from collections import OrderedDict
 
 from .configuration_auto import (
+    BertMorphologyConfig,
     AlbertConfig,
     AutoConfig,
     BertConfig,
@@ -37,6 +38,7 @@ from .configuration_auto import (
 )
 from .configuration_utils import PretrainedConfig
 from .tokenization_albert import AlbertTokenizer
+from .tokenization_morphology import BertMorphologyTokenizer
 from .tokenization_bert import BertTokenizer
 from .tokenization_bert_japanese import BertJapaneseTokenizer
 from .tokenization_camembert import CamembertTokenizer
@@ -61,6 +63,7 @@ TOKENIZER_MAPPING = OrderedDict(
         (T5Config, T5Tokenizer),
         (DistilBertConfig, DistilBertTokenizer),
         (AlbertConfig, AlbertTokenizer),
+        (BertMorphologyConfig, BertMorphologyTokenizer),
         (CamembertConfig, CamembertTokenizer),
         (XLMRobertaConfig, XLMRobertaTokenizer),
         (RobertaConfig, RobertaTokenizer),
@@ -121,6 +124,7 @@ class AutoTokenizer:
             - contains `t5`: T5Tokenizer (T5 model)
             - contains `distilbert`: DistilBertTokenizer (DistilBert model)
             - contains `albert`: AlbertTokenizer (ALBERT model)
+            - contains `berturk-morph`: BertMorphologyokenizer (BERT model)
             - contains `camembert`: CamembertTokenizer (CamemBERT model)
             - contains `xlm-roberta`: XLMRobertaTokenizer (XLM-RoBERTa model)
             - contains `roberta`: RobertaTokenizer (RoBERTa model)
