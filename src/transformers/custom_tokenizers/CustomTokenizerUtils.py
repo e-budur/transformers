@@ -65,16 +65,13 @@ def convert_to_unicode(text):
 # adapted from the original BERT implementatin from Google Research
 # https://github.com/google-research/bert
 #####################################################################
-def load_vocab(vocab_file, remove_header=True):
+def load_vocab(vocab_file):
   """Loads a vocabulary file into a dictionary."""
   vocab = collections.OrderedDict()
   index = 0
   with codecs.open(vocab_file, mode="r", encoding='utf-8') as reader:
       while True:
           token = convert_to_unicode(reader.readline())
-          if remove_header and index == 0:
-              index +=1
-              continue
           if not token:
               break
           token = token.strip().split('\t')[0]
