@@ -232,7 +232,11 @@ def conversational_datasets_convert_examples_to_features(examples, tokenizer,
                                       pad_on_left=False,
                                       pad_token=0,
                                       pad_token_segment_id=0,
-                                      mask_padding_with_zero=True):
+                                      mask_padding_with_zero=True,
+                                      sep_token_extra=False,
+                                      sequence_a_segment_id=0,
+                                      cls_token_segment_id=0,
+                                      cls_token_at_end=False):
 
     logger.info("Using intent_labels %s for task %s" % (list_of_intent_labels, task))
     logger.info("Using enumerable_entity_labels %s for task %s" % (list_of_enumerable_entity_labels, task))
@@ -247,13 +251,47 @@ def conversational_datasets_convert_examples_to_features(examples, tokenizer,
         if ex_index % 10000 == 0:
             logger.info("Writing example %d" % (ex_index))
 
-        inputs = tokenizer.encode_nlu(
-            example.utterance,
-            example.utterance_tokens,
-            add_special_tokens=True,
-            max_length=max_length,
-        )
-        input_ids, token_type_ids = inputs["input_ids"], inputs["token_type_ids"]
+        tokens = []
+        label_ids = []
+        for word, slot_label in zip(example.utterance_tokens, example.slot_labels):
+            word_tokens = tokenizer.tokenize(word)
+            tokens.extend(word_tokens)
+            # Use the real label id for the first token of the word, and padding ids for the remaining tokens
+            label_ids.extend([non_enumerable_entity_labels_map[slot_label]] + [tokenizer.pad_token_id] * (len(word_tokens) - 1))
+
+        # Account for [CLS] and [SEP] with "- 2" and with "- 3" for RoBERTa.
+        special_tokens_count = 3 if sep_token_extra else 2
+        if len(tokens) > max_length - special_tokens_count:
+            tokens = tokens[: (max_length - special_tokens_count)]
+            label_ids = label_ids[: (max_length - special_tokens_count)]
+
+        # The convention in BERT is:
+        # (a) For sequence pairs:
+        #  tokens:   [CLS] is this jack ##son ##ville ? [SEP] no it is not . [SEP]
+        #  type_ids:   0   0  0    0    0     0       0   0   1  1  1  1   1   1
+        # (b) For single sequences:
+        #  tokens:   [CLS] the dog is hairy . [SEP]
+        #  type_ids:   0   0   0   0  0     0   0
+        #
+        # Where "type_ids" are used to indicate whether this is the first
+        # sequence or the second sequence. The embedding vectors for `type=0` and
+        # `type=1` were learned during pre-training and are added to the wordpiece
+        # embedding vector (and position vector). This is not *strictly* necessary
+        # since the [SEP] token unambiguously separates the sequences, but it makes
+        # it easier for the model to learn the concept of sequences.
+        #
+        # For classification tasks, the first vector (corresponding to [CLS]) is
+        # used as as the "sentence vector". Note that this only makes sense because
+        # the entire model is fine-tuned.
+        tokens += [tokenizer.sep_token]
+        label_ids += [tokenizer.pad_token_id]
+
+
+        tokens = [tokenizer.cls_token] + tokens
+        label_ids = [tokenizer.pad_token_id] + label_ids
+        token_type_ids = [0] * len(tokens)
+
+        input_ids = tokenizer.convert_tokens_to_ids(tokens)
 
         # The mask has 1 for real tokens and 0 for padding tokens. Only real
         # tokens are attended to.
@@ -265,14 +303,20 @@ def conversational_datasets_convert_examples_to_features(examples, tokenizer,
             input_ids = ([pad_token] * padding_length) + input_ids
             attention_mask = ([0 if mask_padding_with_zero else 1] * padding_length) + attention_mask
             token_type_ids = ([pad_token_segment_id] * padding_length) + token_type_ids
+            label_ids = [0] * padding_length + label_ids
         else:
             input_ids = input_ids + ([pad_token] * padding_length)
             attention_mask = attention_mask + ([0 if mask_padding_with_zero else 1] * padding_length)
             token_type_ids = token_type_ids + ([pad_token_segment_id] * padding_length)
+            label_ids =  label_ids + [0] * padding_length
 
         assert len(input_ids) == max_length, "Error with input length {} vs {}".format(len(input_ids), max_length)
-        assert len(attention_mask) == max_length, "Error with input length {} vs {}".format(len(attention_mask), max_length)
-        assert len(token_type_ids) == max_length, "Error with input length {} vs {}".format(len(token_type_ids), max_length)
+        assert len(attention_mask) == max_length, "Error with input length {} vs {}".format(
+            len(attention_mask), max_length
+        )
+        assert len(token_type_ids) == max_length, "Error with input length {} vs {}".format(
+            len(token_type_ids), max_length
+        )
 
         intent_label = intent_labels_map[example.intent]
         enumerable_entity_labels = [0]*len(list_of_enumerable_entity_labels)
@@ -280,7 +324,7 @@ def conversational_datasets_convert_examples_to_features(examples, tokenizer,
             entity_index = enumerable_entity_labels_map[entity]
             enumerable_entity_labels[entity_index] = 1
 
-        non_enumerable_entity_labels = [non_enumerable_entity_labels_map[slot_label] for slot_label in example.slot_labels]
+        non_enumerable_entity_labels = label_ids
         pad_length = max_length - len(non_enumerable_entity_labels)
         non_enumerable_entity_labels = non_enumerable_entity_labels + [0]*pad_length
 
@@ -288,6 +332,7 @@ def conversational_datasets_convert_examples_to_features(examples, tokenizer,
             logger.info("*** Example ***")
             logger.info("tokens: %s" % " ".join([str(x) for x in example.utterance_tokens]))
             logger.info("input_ids: %s" % " ".join([str(x) for x in input_ids]))
+            logger.info("input_tokens: %s" % " ".join([str(tokenizer._convert_id_to_token(x)) for x in input_ids]))
             logger.info("attention_mask: %s" % " ".join([str(x) for x in attention_mask]))
             logger.info("token_type_ids: %s" % " ".join([str(x) for x in token_type_ids]))
             logger.info("intent_label: %s (id = %d)" % (example.intent, intent_label))

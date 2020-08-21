@@ -60,7 +60,7 @@ class BertNLUConfig(BertConfig):
 class BertForJointUnderstandingConfig(BertConfig):
 
     def __init__(self,
-                 vocab_size_or_config_json_file=30522,
+                 vocab_size=30522,
                  hidden_size=768,
                  num_hidden_layers=12,
                  num_attention_heads=12,
@@ -76,7 +76,7 @@ class BertForJointUnderstandingConfig(BertConfig):
                  num_enumerable_entity_labels=2,
                  num_non_enumerable_entity_labels=2,
                  **kwargs):
-        super(BertForJointUnderstandingConfig, self).__init__(vocab_size_or_config_json_file,
+        super(BertForJointUnderstandingConfig, self).__init__(vocab_size,
                                             hidden_size,
                                             num_hidden_layers,
                                             num_attention_heads,

@@ -57,6 +57,11 @@ from .data import (
     xnli_output_modes,
     xnli_processors,
     xnli_tasks_num_labels,
+
+    #added by e-budur for NLU experimentations
+    conversational_datasets_convert_examples_to_features,
+    conversational_datasets_output_modes,
+    conversational_datasets_processors
 )
 
 # Files and general utilities
@@ -131,7 +136,7 @@ logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 
 if is_sklearn_available():
-    from .data import glue_compute_metrics, xnli_compute_metrics
+    from .data import glue_compute_metrics, nlu_compute_metrics, xnli_compute_metrics
 
 
 # Modeling
