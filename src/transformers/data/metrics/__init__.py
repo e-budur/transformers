@@ -56,7 +56,7 @@ if _has_sklearn:
 
     def f1_for_nlu(preds, labels, average):
         intent_f1 = f1_score(labels['intents'], preds['intents'], average=average)
-        enumerable_entities_f1 = f1_score(labels['enumerable_entities'], preds['enumerable_entities'], average=average)
+        enumerable_entities_f1 = f1_score(labels['enumerable_entities'], preds['enumerable_entities'], average=average) if preds['enumerable_entities'] is not None else None
         non_enumerable_entities_f1 = f1_score(labels['non_enumerable_entities'].flatten(),preds['non_enumerable_entities'].flatten(), average=average)
 
         f1_for_nlu_result = {
@@ -81,7 +81,7 @@ if _has_sklearn:
                                                                             target_names=target_names['intents'])
         enumerable_entities_classification_report_result = simple_classification_report(labels=labels['enumerable_entities'],
                                                                                         preds=preds['enumerable_entities'],
-                                                                            target_names=target_names['enumerable_entities'])
+                                                                            target_names=target_names['enumerable_entities']) if preds['enumerable_entities'] is not None else None
         non_enumerable_entities_classification_report_result = simple_classification_report(labels=labels['non_enumerable_entities'].flatten(),
                                                                                             preds=preds['non_enumerable_entities'].flatten(),
                                                                             target_names=target_names['non_enumerable_entities'])
@@ -126,7 +126,7 @@ if _has_sklearn:
 
     def nlu_compute_metrics(task_name, preds, labels, target_names):
 
-        if task_name == "google-simulated-dialogue":
+        if task_name == "google-simulated-dialogue" or task_name == "multilingual-atis":
             return acc_and_f1_and_classification_report_for_nlu(preds, labels, target_names)
         else:
             raise KeyError(task_name)

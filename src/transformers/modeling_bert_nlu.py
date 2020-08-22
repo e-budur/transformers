@@ -164,10 +164,16 @@ class BertForJointUnderstanding(BertForPreTraining):
         self.bert = self.get_bert_model(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
         self.classifier_intents = nn.Linear(config.hidden_size, config.num_intent_labels)
-        self.classifier_enumerable_entities = nn.Linear(config.hidden_size, config.num_enumerable_entity_labels)
+
+        if self.has_enumerable_labels():
+            self.classifier_enumerable_entities = nn.Linear(config.hidden_size, config.num_enumerable_entity_labels)
+
         self.classifier_non_enumerable_entities = nn.Linear(config.hidden_size, config.num_non_enumerable_entity_labels)
 
         self.init_weights()
+
+    def has_enumerable_labels(self):
+        return self.num_enumerable_entity_labels>1
 
     def get_bert_model(self, config):
         return BertModel(config)
@@ -223,7 +229,7 @@ class BertForJointUnderstanding(BertForPreTraining):
         pooled_output_for_intent, pooled_output_for_enumerable_entities  = self.get_pooled_outputs(outputs)
 
         intent_logits = self.get_intent_logits(pooled_output_for_intent)
-        enumerable_entity_logits = self.get_enumerable_entity_logits(pooled_output_for_enumerable_entities)
+        enumerable_entity_logits = self.get_enumerable_entity_logits(pooled_output_for_enumerable_entities) if self.has_enumerable_labels() else None
         non_enumerable_entity_logits = self.get_non_enumerable_entity_logits(sequence_output)
         hidden_states = self.get_hidden_states(outputs)
 
@@ -233,7 +239,7 @@ class BertForJointUnderstanding(BertForPreTraining):
             loss_fct = CrossEntropyLoss()
             loss_multi_label = MultiLabelSoftMarginLoss()
             intent_loss = loss_fct(intent_logits.view(-1, self.num_intent_labels), intent_labels.view(-1))
-            enumerable_entity_loss = loss_multi_label(enumerable_entity_logits.view(-1, self.num_enumerable_entity_labels), enumerable_entity_labels)
+            enumerable_entity_loss = loss_multi_label(enumerable_entity_logits.view(-1, self.num_enumerable_entity_labels), enumerable_entity_labels) if self.has_enumerable_labels() else 0
             non_enumerable_entity_loss = loss_fct(non_enumerable_entity_logits.view(-1, self.num_non_enumerable_entity_labels), non_enumerable_entity_labels.view(-1))
             loss = intent_loss * loss_weights['intent'] + enumerable_entity_loss * loss_weights['enumerable_entities'] + non_enumerable_entity_loss * loss_weights['non_enumerable_entities']
             outputs = (loss,) + outputs

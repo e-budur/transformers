@@ -39,7 +39,7 @@ class InputTurnExample(object):
 
 class InputTurnFeatures(object):
 
-    def __init__(self, input_ids, attention_mask, token_type_ids, intent_label, enumerable_entity_labels, non_enumerable_entity_labels):
+    def __init__(self, input_ids, attention_mask, token_type_ids, intent_label, enumerable_entity_labels=[], non_enumerable_entity_labels=[]):
         self.input_ids = input_ids
         self.attention_mask = attention_mask
         self.token_type_ids = token_type_ids
@@ -222,6 +222,147 @@ class GoogleSimuatedDialogueProcessor(DataProcessor):
         non_enumerable_enitity_preds_decoded = non_enumerable_entity_labels[non_enumerable_enitity_preds]
         return non_enumerable_enitity_preds_decoded
 
+
+class MultilingualATISProcessor(DataProcessor):
+
+
+    def __init__(self, source_language='English', target_language='Turkish'):
+        self.source_language = source_language
+        self.target_language = target_language
+        self.taxonomy = {
+
+            'enumerable_entities': {},
+            'non_enumerable_entities': {
+                 'aircraft_code': [], 'airline_code': [], 'airline_name': [], 'airport_code': [], 'airport_name': [], 'arrive_date.date_relative': [], 'arrive_date.day_name': [], 'arrive_date.day_number': [], 'arrive_date.month_name': [], 'arrive_time.end_time': [], 'arrive_time.period_mod': [], 'arrive_time.period_of_day': [], 'arrive_time.start_time': [], 'arrive_time.time': [], 'arrive_time.time_relative': [], 'city_name': [], 'class_type': [], 'connect': [], 'cost_relative': [], 'days_code': [], 'depart_date.date_relative': [], 'depart_date.day_name': [], 'depart_date.day_number': [], 'depart_date.month_name': [], 'depart_date.today_relative': [], 'depart_date.year': [], 'depart_time.end_time': [], 'depart_time.period_mod': [], 'depart_time.period_of_day': [], 'depart_time.start_time': [], 'depart_time.time': [], 'depart_time.time_relative': [], 'economy': [], 'fare_amount': [], 'fare_basis_code': [], 'flight_days': [], 'flight_mod': [], 'flight_number': [], 'flight_stop': [], 'flight_time': [], 'fromloc.airport_code': [], 'fromloc.airport_name': [], 'fromloc.city_name': [], 'fromloc.state_code': [], 'fromloc.state_name': [], 'meal': [], 'meal_code': [], 'meal_description': [], 'mod': [], 'or': [], 'restriction_code': [], 'round_trip': [], 'state_code': [], 'stoploc.city_name': [], 'time': [], 'today_relative': [], 'toloc.airport_code': [], 'toloc.airport_name': [], 'toloc.city_name': [], 'toloc.country_name': [], 'toloc.state_code': [], 'toloc.state_name': [], 'transport_type': []
+            },
+            'intents': ['restriction', 'distance', 'meal', 'city', 'airline', 'flight airfare', 'ground_fare', 'quantity', 'aircraft', 'ground_service', 'flight_time', 'abbreviation', 'airport', 'capacity', 'flight', 'airfare']
+        }
+
+    def _read_tsv(self, file_name):
+        conversations = []
+        intent_set = set()
+        slot_labels = []
+        with codecs.open(file_name, encoding='utf-8', mode='r') as tsv_file:
+            for line in tsv_file:
+                fields = line.split('\t')
+                intent_set.add(fields[3])
+                slot_labels.extend([slot_name.replace('B-','').replace('I-','') for slot_name in fields[5].split()])
+                conversations.append(fields)
+        intent_list = list(intent_set)
+        intent_list.sort()
+        print('intent_list', intent_list)
+        slot_labels = list(set(slot_labels))
+        slot_labels.sort()
+        list_of_list = [[]]*len(slot_labels)
+        slot_dict = dict(zip(slot_labels, list_of_list))
+        print('slot_dict', slot_dict)
+
+        return conversations
+
+
+
+    def convert_to_nlu_data_in_conversation(self, conversation_fields):
+
+        utterance_en = conversation_fields[0]
+        slot_labels_en = conversation_fields[1]
+        intent = conversation_fields[3]
+        utterance_tr = conversation_fields[4]
+        slot_labels_tr = conversation_fields[5]
+
+        multilingual_nlu_data = {}
+        multilingual_nlu_data[self.source_language.lower()] = {}
+        multilingual_nlu_data[self.target_language.lower()] = {}
+
+        multilingual_nlu_data[self.source_language.lower()]['utterance'] = utterance_en
+        multilingual_nlu_data[self.source_language.lower()]['tokens'] = utterance_en.split()
+        multilingual_nlu_data[self.source_language.lower()]['slot_labels'] = slot_labels_en.split()
+
+        multilingual_nlu_data[self.target_language.lower()]['utterance'] = utterance_tr
+        multilingual_nlu_data[self.target_language.lower()]['tokens'] = utterance_tr.split()
+        multilingual_nlu_data[self.target_language.lower()]['slot_labels'] = slot_labels_tr.split()
+
+        nlu_data = multilingual_nlu_data[self.target_language.lower()]
+
+        nlu_data_in_conversation = []
+        example = InputTurnExample(utterance=nlu_data['utterance'],
+                                   utterance_tokens=nlu_data['tokens'],
+                                   intent=intent,
+                                   slot_labels=nlu_data['slot_labels']
+                                    )
+        nlu_data_in_conversation.append(example)
+        return nlu_data_in_conversation
+
+    def create_nlu_dataset(self, data_dir, set_type):
+        nlu_dataset = []
+
+        file_name = os.path.join(data_dir, '{}-{}.{}'.format(self.target_language, set_type, 'tsv'))
+        conversations = self._read_tsv(file_name)
+
+        for conversation in conversations:
+            nlu_data_in_conversation = self.convert_to_nlu_data_in_conversation(conversation)
+
+            nlu_dataset.extend(nlu_data_in_conversation)
+        return nlu_dataset
+
+    def _create_examples(self, data_dir, set_type='train'):
+        nlu_dataset = self.create_nlu_dataset(data_dir, set_type)
+        return nlu_dataset
+
+    def get_train_examples(self, data_dir):
+        return self._create_examples(data_dir, set_type='train')
+
+    def get_dev_examples(self, data_dir):
+        return self._create_examples(data_dir, set_type='train_638')
+
+    def get_test_examples(self, data_dir):
+        return self._create_examples(data_dir, set_type='test')
+
+    def get_intents_labels(self):
+        intents_labels = self.taxonomy['intents']
+        return intents_labels
+
+    def get_enumerable_entity_labels(self):
+        enumerable_entity_labels = []
+        for enumerable_entity_key, enumerable_entity_values in self.taxonomy['enumerable_entities'].items():
+            for enumerable_entity_value in enumerable_entity_values:
+                enumerable_entity_label = enumerable_entity_key + '=' + enumerable_entity_value
+                enumerable_entity_labels.append(enumerable_entity_label)
+        return enumerable_entity_labels
+
+    def get_non_enumerable_entity_labels(self):
+        non_enumerable_entity_labels = []
+        non_enumerable_entity_labels.append('O')
+        for non_enumerable_entity_key in self.taxonomy['non_enumerable_entities'].keys():
+            non_enumerable_entity_labels.append('B-' + non_enumerable_entity_key)
+            non_enumerable_entity_labels.append('I-' + non_enumerable_entity_key)
+
+        return non_enumerable_entity_labels
+
+    def get_labels(self):
+        """Gets the list of labels for this data set."""
+        intent_labels = self.get_intents_labels()
+
+        enumerable_entity_labels = self.get_enumerable_entity_labels()
+
+        non_enumerable_entity_labels = self.get_non_enumerable_entity_labels()
+
+        return intent_labels, enumerable_entity_labels, non_enumerable_entity_labels
+
+    def decode_intent_preds(self, intent_preds):
+        intents_labels = self.get_intents_labels()
+        intent_preds_decoded = intents_labels[intent_preds]
+        return intent_preds_decoded
+
+    def decode_enumerable_enitity_preds(self, enumerable_entity_preds):
+        enumerable_entity_labels = self.get_enumerable_entity_labels()
+        enumerable_entity_preds_decoded = enumerable_entity_labels[enumerable_entity_preds]
+        return enumerable_entity_preds_decoded
+
+    def decode_non_enumerable_enitity_preds(self, non_enumerable_enitity_preds):
+        non_enumerable_entity_labels = self.get_non_enumerable_entity_labels()
+        non_enumerable_enitity_preds_decoded = non_enumerable_entity_labels[non_enumerable_enitity_preds]
+        return non_enumerable_enitity_preds_decoded
+
 def conversational_datasets_convert_examples_to_features(examples, tokenizer,
                                       max_length=512,
                                       task=None,
@@ -352,9 +493,11 @@ def conversational_datasets_convert_examples_to_features(examples, tokenizer,
     return features
 
 conversational_datasets_processors = {
-    "google-simulated-dialogue": GoogleSimuatedDialogueProcessor
+    "google-simulated-dialogue": GoogleSimuatedDialogueProcessor,
+    "multilingual-atis": MultilingualATISProcessor
 }
 
 conversational_datasets_output_modes = {
-    "google-simulated-dialogue": "classification"
+    "google-simulated-dialogue": "classification",
+    "multilingual-atis": "classification"
 }

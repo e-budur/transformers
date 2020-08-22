@@ -335,7 +335,7 @@ def evaluate(args, model, tokenizer, processor, prefix='', only_scalars=True, ve
             nb_eval_steps += 1
             if intent_preds is None:
                 intent_preds = intent_logits.detach().cpu().numpy()
-                enumerable_entity_preds = enumerable_entity_logits.detach().cpu().numpy()
+                enumerable_entity_preds = enumerable_entity_logits.detach().cpu().numpy() if enumerable_entity_logits is not None else None
                 non_enumerable_entity_preds = non_enumerable_entity_logits.detach().cpu().numpy()
 
                 out_intent_labels_ids = inputs['intent_labels'].detach().cpu().numpy()
@@ -343,7 +343,7 @@ def evaluate(args, model, tokenizer, processor, prefix='', only_scalars=True, ve
                 out_non_enumerable_entity_labels_ids = inputs['non_enumerable_entity_labels'].detach().cpu().numpy()
             else:
                 intent_preds = np.append(intent_preds, intent_logits.detach().cpu().numpy(), axis=0)
-                enumerable_entity_preds = np.append(enumerable_entity_preds, enumerable_entity_logits.detach().cpu().numpy(), axis=0)
+                enumerable_entity_preds = np.append(enumerable_entity_preds, enumerable_entity_logits.detach().cpu().numpy(), axis=0)  if enumerable_entity_logits is not None else None
                 non_enumerable_entity_preds = np.append(non_enumerable_entity_preds, non_enumerable_entity_logits.detach().cpu().numpy(), axis=0)
 
                 out_intent_labels_ids = np.append(out_intent_labels_ids, inputs['intent_labels'].detach().cpu().numpy(), axis=0)
@@ -355,8 +355,9 @@ def evaluate(args, model, tokenizer, processor, prefix='', only_scalars=True, ve
         intent_preds = softmax(intent_preds, axis=1)
         intent_preds = np.argmax(intent_preds, axis=1)
 
-        enumerable_entity_preds = sigmoid(enumerable_entity_preds)
-        enumerable_entity_preds = (enumerable_entity_preds > 0.5) * 1
+        if enumerable_entity_preds is not None:
+            enumerable_entity_preds = sigmoid(enumerable_entity_preds)
+            enumerable_entity_preds = (enumerable_entity_preds > 0.5) * 1
 
         non_enumerable_entity_preds = softmax(non_enumerable_entity_preds, axis=2)
         non_enumerable_entity_preds = np.argmax(non_enumerable_entity_preds, axis=2)
@@ -404,14 +405,17 @@ def evaluate(args, model, tokenizer, processor, prefix='', only_scalars=True, ve
     if only_scalars:
         results_scalars = {}
         results_scalars['intent_acc'] = results['acc']['intents']
-        results_scalars['enumerable_entities_acc'] = results['acc']['enumerable_entities']
+        if enumerable_entity_preds is not None:
+            results_scalars['enumerable_entities_acc'] = results['acc']['enumerable_entities']
         results_scalars['non_enumerable_entities_acc'] = results['acc']['non_enumerable_entities']
         results_scalars['intent_macro_f1'] = results['f1']['macro']['intents']
         results_scalars['intent_micro_f1'] = results['f1']['micro']['intents']
         results_scalars['intent_weighted_f1'] = results['f1']['weighted']['intents']
-        results_scalars['enumerable_entities_macro_f1'] = results['f1']['macro']['enumerable_entities']
-        results_scalars['enumerable_entities_micro_f1'] = results['f1']['micro']['enumerable_entities']
-        results_scalars['enumerable_entities_weighted_f1'] = results['f1']['weighted']['enumerable_entities']
+
+        if enumerable_entity_preds is not None:
+            results_scalars['enumerable_entities_macro_f1'] = results['f1']['macro']['enumerable_entities']
+            results_scalars['enumerable_entities_micro_f1'] = results['f1']['micro']['enumerable_entities']
+            results_scalars['enumerable_entities_weighted_f1'] = results['f1']['weighted']['enumerable_entities']
         results_scalars['non_enumerable_entities_macro_f1'] = results['f1']['macro']['non_enumerable_entities']
         results_scalars['non_enumerable_entities_micro_f1'] = results['f1']['micro']['non_enumerable_entities']
         results_scalars['non_enumerable_entities_weighted_f1'] = results['f1']['weighted'][
@@ -432,7 +436,7 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False):
     # Load data features from cache or dataset file
     cached_features_file = os.path.join(args.data_dir, 'cached_{}_{}_{}_{}_{}'.format(
         args.model_type,
-        'dev' if evaluate else 'train',
+        args.eval_split_name if evaluate else 'train',
         list(filter(None, args.model_name_or_path.split('/'))).pop(),
         str(args.max_seq_length),
         str(task)))
@@ -568,6 +572,8 @@ def main():
     # additional arguments required for e-budur
     parser.add_argument('--evaluation_steps', type=int, default=0,
                         help="Log every X updates steps.")
+    parser.add_argument('--eval_split_name', type=str, default='dev',
+                        help="The name of the evaluation split.")
     parser.add_argument(
         "--dynamic_evaluation_step_regime", action="store_true", help="Apply dynamic evaluation regime.",
     )
