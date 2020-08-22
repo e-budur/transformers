@@ -126,7 +126,7 @@ class BertMorphologyTokenizer(PreTrainedTokenizer):
         # added by e-budur for logging some samples from the preprocessed inputs
         if random.random() < 0.01:  # print some examples of the preprocessed sentences
             print(u"\n{}\nOriginal line: {}\nProcessed line: {}\n{}\n ".format(
-                u"================================= SP PROCESSED EXAMPLE ===================================",
+                u"================================= MORPHOLOGY PROCESSED EXAMPLE ===================================",
                 input_text.strip(),
                 ' '.join(tokens),
                 u"==========================================================================================")

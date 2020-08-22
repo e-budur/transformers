@@ -33,7 +33,7 @@ from torch.utils.data.distributed import DistributedSampler
 from transformers.configuration_bert_nlu import BertForJointUnderstandingConfig, BertNLUForJointUnderstandingConfig
 from transformers.modeling_bert_nlu import BertForJointUnderstanding, BertNLUForJointUnderstanding
 from transformers.tokenization_bert_nlu import BertNLUTokenizer
-
+from transformers import AutoConfig, AutoModel, AutoTokenizer
 try:
     from torch.utils.tensorboard import SummaryWriter
 except:
@@ -69,6 +69,7 @@ ALL_MODELS = sum((tuple(conf.pretrained_config_archive_map.keys()) for conf in (
 
 MODEL_CLASSES = {
     'bert': (BertForJointUnderstandingConfig, BertForJointUnderstanding, BertNLUTokenizer),
+    'bert-auto': (AutoConfig, BertForJointUnderstanding, AutoTokenizer),
     'bert-nlu': (BertNLUForJointUnderstandingConfig, BertNLUForJointUnderstanding, BertNLUTokenizer)
 }
 
