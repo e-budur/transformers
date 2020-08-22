@@ -314,13 +314,13 @@ class MultilingualATISProcessor(DataProcessor):
         return nlu_dataset
 
     def get_train_examples(self, data_dir):
-        return self._create_examples(data_dir, set_type='train_638')
+        return self._create_examples(data_dir, 'data', set_type='train_638')
 
     def get_dev_examples(self, data_dir):
-        return self._create_examples(data_dir, set_type='test')
+        return self._create_examples(data_dir, 'data', set_type='test')
 
     def get_test_examples(self, data_dir):
-        return self._create_examples(data_dir, set_type='test')
+        return self._create_examples(data_dir, 'data', set_type='test')
 
     def get_intents_labels(self):
         intents_labels = self.taxonomy['intents']
