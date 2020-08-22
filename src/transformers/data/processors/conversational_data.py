@@ -300,7 +300,7 @@ class MultilingualATISProcessor(DataProcessor):
     def create_nlu_dataset(self, data_dir, set_type):
         nlu_dataset = []
 
-        file_name = os.path.join(data_dir, '{}-{}.{}'.format(self.target_language, set_type, 'tsv'))
+        file_name = os.path.join(data_dir, 'data', '{}-{}.{}'.format(self.target_language, set_type, 'tsv'))
         conversations = self._read_tsv(file_name)
 
         for conversation in conversations:
@@ -314,13 +314,13 @@ class MultilingualATISProcessor(DataProcessor):
         return nlu_dataset
 
     def get_train_examples(self, data_dir):
-        return self._create_examples(data_dir, 'data', set_type='train_638')
+        return self._create_examples(data_dir, set_type='train_638')
 
     def get_dev_examples(self, data_dir):
-        return self._create_examples(data_dir, 'data', set_type='test')
+        return self._create_examples(data_dir, set_type='test')
 
     def get_test_examples(self, data_dir):
-        return self._create_examples(data_dir, 'data', set_type='test')
+        return self._create_examples(data_dir, set_type='test')
 
     def get_intents_labels(self):
         intents_labels = self.taxonomy['intents']
