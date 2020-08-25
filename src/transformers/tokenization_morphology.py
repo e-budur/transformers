@@ -97,7 +97,19 @@ class BertMorphologyTokenizer(PreTrainedTokenizer):
     def init_morphological_tokenizer(self):
         self.vocab = load_vocab(self.vocab_file)
         self.inv_vocab = {v: k for k, v in self.vocab.items()}
+
+        self.vocab_lowercase = {}
+        if self.do_lower_case:
+            for token, index in self.vocab.items():
+                lowercase_token = token.lower()
+                if lowercase_token not in self.vocab:
+                    self.vocab_lowercase[lowercase_token] = self.vocab[token]
+                else:
+                    self.vocab_lowercase[lowercase_token] = self.vocab[lowercase_token]
+
+
         self.zemberek_tokenizer = ZemberekTokenizer(vocab=self.vocab,
+                                                    vocab_lowercase=self.vocab_lowercase,
                                                     lower_case=self.do_lower_case,
                                                     omit_suffixes=self.omit_suffixes,
                                                     java_home_path=self.java_home_path,
@@ -136,7 +148,11 @@ class BertMorphologyTokenizer(PreTrainedTokenizer):
 
     def _convert_token_to_id(self, token):
         """ Converts a token (str) in an id using the vocab. """
-        return self.vocab.get(token, self.unk_token)
+        if self.do_lower_case:
+            fallback_token = self.vocab_lowercase.get(token.lower(), self.unk_token)
+        else:
+            fallback_token = self.unk_token
+        return self.vocab.get(token, fallback_token)
 
     def _convert_id_to_token(self, index):
         """Converts an index (integer) in a token (str) using the vocab."""

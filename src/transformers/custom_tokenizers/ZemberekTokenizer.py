@@ -7,11 +7,13 @@ class ZemberekTokenizer(object):
   """Runs Zemberek's morphological tokenization."""
   def __init__(self,
                vocab=None,
+               vocab_lowercase=None,
                unk_token="[UNK]",
                **kwargs):
 
     self.unk_token = unk_token
     self.vocab = vocab
+    self.vocab_lowercase = vocab_lowercase
     self.kwargs = kwargs
     self.init()
 
@@ -55,7 +57,8 @@ class ZemberekTokenizer(object):
           parsed_tokens.extend(parsed_word.split(' '))
 
       output_tokens = [convert_to_unicode(token)
-                       if token in self.vocab else self.unk_token
+                       if (token in self.vocab) or (self.kwargs.get('lower_case', False) and token.lower() in self.vocab_lowercase)
+                       else self.unk_token
                        for token in parsed_tokens]
       return output_tokens
 
