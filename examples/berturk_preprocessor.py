@@ -11,7 +11,7 @@ import sentencepiece as spm
 from subprocess import call, Popen, PIPE, check_call, check_output, CalledProcessError
 import traceback
 import six
-
+from turkish.deasciifier import Deasciifier
 def align_cases(input_word_form, parsed_word_form):
 
     input_word_form = unicode_tr(input_word_form)
@@ -297,6 +297,11 @@ def from_sentence_to_character_ngram_sequence(sentence, params):
 
     return ' '.join(ngrams_of_tokens).strip()
 
+def deasciify(sentence, params):
+    deasciifier = Deasciifier(sentence)
+    deasciified_sentence = deasciifier.convert_to_turkish()
+    return deasciified_sentence.strip()
+
 def get_preprocess_parameters(args):
     params = None
     if args.do_morphological_preprocessing:
@@ -341,6 +346,11 @@ def get_preprocess_parameters(args):
             'preprocess_func':from_sentence_to_character_ngram_sequence,
             'lower_case': args.do_lower_case
         }
+    elif args.do_deasciifier_preprocessing:
+        params = {
+            'preprocess_func': deasciify
+        }
+
     elif args.do_sentencepiece_preprocessing:
         sp = spm.SentencePieceProcessor()
         sp.Load(args.sp_model_path)
@@ -349,6 +359,7 @@ def get_preprocess_parameters(args):
             'preprocess_func':parse_sentencepiece,
             'lower_case': args.do_lower_case
         }
+
 
     return params
 

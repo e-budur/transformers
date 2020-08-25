@@ -40,6 +40,7 @@ except:
     from tensorboardX import SummaryWriter
 
 from tqdm import tqdm, trange
+from examples.berturk_preprocessor import *
 
 from transformers import (WEIGHTS_NAME, BertConfig,
                                   BertForSequenceClassification, BertTokenizer,
@@ -448,6 +449,21 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False):
         logger.info("Creating features from dataset file at %s", args.data_dir)
         list_of_intent_labels, list_of_enumerable_entity_labels, list_of_non_enumerable_entity_labels = processor.get_labels()
         examples = processor.get_dev_examples(args.data_dir) if evaluate else processor.get_train_examples(args.data_dir)
+        if args.do_deasciifier_preprocessing:
+            for example in examples:
+                old_utterance = example.utterance
+                new_utterance = deasciify(old_utterance, args)
+                example.set_utterance(new_utterance)
+
+                if random.random() < 0.01:  # print some examples of shuffles sentences
+                    print(
+                        u"\n{}\nOriginal line (utterance): {}\nProcessed line (deasciified_utterance): {}\n ".format(
+                            u"================================= PROCESSED EXAMPLE ===================================",
+                            old_utterance.strip(),
+                            new_utterance.strip(),
+                            u"=======================================================================================")
+                    )
+
         features = convert_examples_to_features(examples,
                                                 tokenizer,
                                                 list_of_intent_labels=list_of_intent_labels,
@@ -578,7 +594,37 @@ def main():
     parser.add_argument(
         "--dynamic_evaluation_step_regime", action="store_true", help="Apply dynamic evaluation regime.",
     )
+    parser.add_argument("--zemberek_path", default=None, type=str, required=False,
+                        help="The zemberek library path.")
+    parser.add_argument("--java_home_path", default=None, type=str, required=False,
+                        help="The java home path.")
+    parser.add_argument("--do_morphological_preprocessing", default=False,
+                        action="store_true", required=False,
+                        help="Whether to preprocess the input file using a morphological parser.")
+    parser.add_argument("--do_deasciifier_preprocessing", default=False,
+                        action="store_true", required=False,
+                        help="Whether to preprocess the input file using a deasciifier.")
+    parser.add_argument("--morphological_parser_name", default='zemberek', type=str, required=False,
+                        help="The name of morphological parser.")
+    parser.add_argument("--omit_suffixes_after_morphological_preprocessing", action="store_true",
+                        required=False,
+                        help="Whether to omit suffixes in the resulting tokens of a morphological parser.")
+    parser.add_argument("--boun_parser_dir", default=None, type=str, required=False,
+                        help="The path of boun parser.")
+    parser.add_argument("--boun_parser_python_path", default=None, type=str, required=False,
+                        help="The path of boun parser python env.")
 
+    parser.add_argument("--do_ngram_preprocessing", default=False,
+                        action="store_true", required=False,
+                        help="Whether to preprocess the input file by using ngram sequence method.")
+    parser.add_argument("--ngram_size", default=None, type=int, required=False,
+                        help="The size of ngram when do_ngram_preprocessing is True.")
+
+    parser.add_argument("--do_sentencepiece_preprocessing", default=False,
+                        action="store_true", required=False,
+                        help="Whether to preprocess the input file using the sentencepiece parser.")
+    parser.add_argument("--sp_model_path", default='spm.model', type=str, required=False,
+                        help="The path of sentencepiece model.")
     args = parser.parse_args()
 
 

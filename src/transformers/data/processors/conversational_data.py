@@ -22,6 +22,12 @@ class InputTurnExample(object):
         self.non_enumerable_entities = non_enumerable_entities
         self.slot_labels = slot_labels
 
+    def set_utterance(self, new_utterance):
+        new_utterance_tokens = new_utterance.strip().split()
+        assert len(new_utterance_tokens) == len(self.utterance_tokens)
+        self.utterance_tokens = new_utterance_tokens
+        self.utterance = new_utterance
+
     def __repr__(self):
         return str(self.to_json_string())
 
