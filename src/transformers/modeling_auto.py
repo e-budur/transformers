@@ -22,6 +22,7 @@ from .configuration_auto import (
     AlbertConfig,
     AutoConfig,
     BertConfig,
+    BertMorphologyConfig,
     CamembertConfig,
     CTRLConfig,
     DistilBertConfig,
@@ -225,6 +226,7 @@ MODEL_FOR_TOKEN_CLASSIFICATION_MAPPING = OrderedDict(
         (XLMRobertaConfig, XLMRobertaForTokenClassification),
         (RobertaConfig, RobertaForTokenClassification),
         (BertConfig, BertForTokenClassification),
+        (BertMorphologyConfig, BertForTokenClassification),
         (XLNetConfig, XLNetForTokenClassification),
     ]
 )
