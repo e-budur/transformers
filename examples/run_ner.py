@@ -346,9 +346,13 @@ def evaluate(args, model, tokenizer, labels, pad_token_label_id, mode, prefix=""
 
     results = {
         "loss": eval_loss,
-        "precision": precision_score(out_label_list, preds_list),
-        "recall": recall_score(out_label_list, preds_list),
-        "f1": f1_score(out_label_list, preds_list),
+        "micro-precision": precision_score(out_label_list, preds_list, average='micro'),
+        "micro-recall": recall_score(out_label_list, preds_list, average='micro'),
+        "micro-f1": f1_score(out_label_list, preds_list, average='micro'),
+
+        "macro-precision": precision_score(out_label_list, preds_list, average='macro'),
+        "macro-recall": recall_score(out_label_list, preds_list, average='macro'),
+        "macro-f1": f1_score(out_label_list, preds_list, average='macro'),
     }
 
     logger.info("***** Eval results %s *****", prefix)
