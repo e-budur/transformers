@@ -163,7 +163,7 @@ def train(args, train_dataset, model, tokenizer, labels, pad_token_label_id):
     epochs_trained = 0
     steps_trained_in_current_epoch = 0
     # Check if continuing training from a checkpoint
-    if os.path.exists(args.model_name_or_path):
+    if os.path.exists(args.model_name_or_path) and os.path.isfile(args.model_name_or_path):
         # set global_step to gobal_step of last saved checkpoint from model path
         try:
             global_step = int(args.model_name_or_path.split("-")[-1].split("/")[0])
