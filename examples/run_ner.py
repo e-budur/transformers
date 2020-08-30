@@ -557,6 +557,9 @@ def main():
     parser.add_argument('--eval_split_name', type=str, default='dev',
                         help="The name of the evaluation split.")
     parser.add_argument('--tensorboard_log_dir', type=str, default=None, help="For logging directory of tensorboard.")
+    parser.add_argument(
+        "--dynamic_evaluation_step_regime", action="store_true", help="Apply dynamic evaluation regime.",
+    )
     args = parser.parse_args()
 
     if (
