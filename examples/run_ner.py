@@ -29,10 +29,14 @@ from torch.nn import CrossEntropyLoss
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler, TensorDataset
 from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm, trange
+import json
 
 from transformers import (
     WEIGHTS_NAME,
     AdamW,
+    AutoConfig,
+    AutoModelForTokenClassification,
+    AutoTokenizer,
     BertConfig,
     BertForTokenClassification,
     BertTokenizer,
@@ -50,7 +54,7 @@ from transformers import (
     XLMRobertaTokenizer,
     get_linear_schedule_with_warmup,
 )
-from utils_ner import convert_examples_to_features, get_labels, read_examples_from_file
+from utils_ner import convert_examples_to_features, get_labels, read_examples_from_file, read_examples_from_conll_file
 
 
 try:
@@ -71,6 +75,7 @@ ALL_MODELS = sum(
 
 MODEL_CLASSES = {
     "bert": (BertConfig, BertForTokenClassification, BertTokenizer),
+    'bert-auto': (AutoConfig, AutoModelForTokenClassification, AutoTokenizer),
     "roberta": (RobertaConfig, RobertaForTokenClassification, RobertaTokenizer),
     "distilbert": (DistilBertConfig, DistilBertForTokenClassification, DistilBertTokenizer),
     "camembert": (CamembertConfig, CamembertForTokenClassification, CamembertTokenizer),
@@ -89,7 +94,7 @@ def set_seed(args):
 def train(args, train_dataset, model, tokenizer, labels, pad_token_label_id):
     """ Train the model """
     if args.local_rank in [-1, 0]:
-        tb_writer = SummaryWriter()
+        tb_writer = SummaryWriter(log_dir=args.tensorboard_log_dir)
 
     args.train_batch_size = args.per_gpu_train_batch_size * max(1, args.n_gpu)
     train_sampler = RandomSampler(train_dataset) if args.local_rank == -1 else DistributedSampler(train_dataset)
@@ -178,7 +183,7 @@ def train(args, train_dataset, model, tokenizer, labels, pad_token_label_id):
         epochs_trained, int(args.num_train_epochs), desc="Epoch", disable=args.local_rank not in [-1, 0]
     )
     set_seed(args)  # Added here for reproductibility
-    for _ in train_iterator:
+    for epoch_num in train_iterator:
         epoch_iterator = tqdm(train_dataloader, desc="Iteration", disable=args.local_rank not in [-1, 0])
         for step, batch in enumerate(epoch_iterator):
 
@@ -223,15 +228,30 @@ def train(args, train_dataset, model, tokenizer, labels, pad_token_label_id):
 
                 if args.local_rank in [-1, 0] and args.logging_steps > 0 and global_step % args.logging_steps == 0:
                     # Log metrics
+                    logs = {}
                     if (
-                        args.local_rank == -1 and args.evaluate_during_training
+                            args.local_rank == -1
+                            and args.evaluate_during_training
+                            and args.evaluation_steps > 0
+                            and global_step % args.evaluation_steps == 0
                     ):  # Only evaluate when single GPU otherwise metrics may not average well
                         results, _ = evaluate(args, model, tokenizer, labels, pad_token_label_id, mode="dev")
                         for key, value in results.items():
-                            tb_writer.add_scalar("eval_{}".format(key), value, global_step)
-                    tb_writer.add_scalar("lr", scheduler.get_lr()[0], global_step)
-                    tb_writer.add_scalar("loss", (tr_loss - logging_loss) / args.logging_steps, global_step)
+                            eval_key = "eval_{}".format(key)
+                            logs[eval_key] = value
+                        if epoch_num > 0 and args.dynamic_evaluation_step_regime:
+                            args.evaluation_steps *= 2
+
+
+                    loss_scalar = (tr_loss - logging_loss) / args.logging_steps
+                    learning_rate_scalar = scheduler.get_lr()[0]
+                    logs["learning_rate"] = learning_rate_scalar
+                    logs["loss"] = loss_scalar
                     logging_loss = tr_loss
+
+                    for key, value in logs.items():
+                        tb_writer.add_scalar(key, value, global_step)
+                    print(json.dumps({**logs, **{"step": global_step}}))
 
                 if args.local_rank in [-1, 0] and args.save_steps > 0 and global_step % args.save_steps == 0:
                     # Save model checkpoint
@@ -254,6 +274,7 @@ def train(args, train_dataset, model, tokenizer, labels, pad_token_label_id):
             if args.max_steps > 0 and global_step > args.max_steps:
                 epoch_iterator.close()
                 break
+
         if args.max_steps > 0 and global_step > args.max_steps:
             train_iterator.close()
             break
@@ -342,18 +363,21 @@ def load_and_cache_examples(args, tokenizer, labels, pad_token_label_id, mode):
         torch.distributed.barrier()  # Make sure only the first process in distributed training process the dataset, and the others will use the cache
 
     # Load data features from cache or dataset file
-    cached_features_file = os.path.join(
-        args.data_dir,
-        "cached_{}_{}_{}".format(
-            mode, list(filter(None, args.model_name_or_path.split("/"))).pop(), str(args.max_seq_length)
-        ),
-    )
+    cached_features_file = os.path.join(args.data_dir, 'cached_{}_{}_{}_{}'.format(
+        args.model_type,
+        args.eval_split_name if evaluate else 'train',
+        list(filter(None, args.model_name_or_path.split('/'))).pop(),
+        str(args.max_seq_length)))
+
     if os.path.exists(cached_features_file) and not args.overwrite_cache:
         logger.info("Loading features from cached file %s", cached_features_file)
         features = torch.load(cached_features_file)
     else:
         logger.info("Creating features from dataset file at %s", args.data_dir)
-        examples = read_examples_from_file(args.data_dir, mode)
+        if args.do_parse_conll_file:
+            examples = read_examples_from_conll_file(args.data_dir, mode)
+        else:
+            examples = read_examples_from_file(args.data_dir, mode)
         features = convert_examples_to_features(
             examples,
             labels,
@@ -519,6 +543,15 @@ def main():
     parser.add_argument("--local_rank", type=int, default=-1, help="For distributed training: local_rank")
     parser.add_argument("--server_ip", type=str, default="", help="For distant debugging.")
     parser.add_argument("--server_port", type=str, default="", help="For distant debugging.")
+    # additional arguments required for e-budur
+    parser.add_argument(
+        "--do_parse_conll_file", action="store_true", help="Set this flag if you are using a conll format for your data."
+    )
+    parser.add_argument('--evaluation_steps', type=int, default=0,
+                        help="Log every X updates steps.")
+    parser.add_argument('--eval_split_name', type=str, default='dev',
+                        help="The name of the evaluation split.")
+    parser.add_argument('--tensorboard_log_dir', type=str, default=None, help="For logging directory of tensorboard.")
     args = parser.parse_args()
 
     if (

@@ -18,8 +18,8 @@
 
 import logging
 import os
-
-
+import pyconll
+import glob
 logger = logging.getLogger(__name__)
 
 
@@ -49,6 +49,46 @@ class InputFeatures(object):
         self.segment_ids = segment_ids
         self.label_ids = label_ids
 
+def read_examples_from_conll_file(data_dir, mode):
+    file_path = glob.glob(os.path.join(data_dir, '*'+mode+'.conllu'))
+    file_path = file_path[0] if len(file_path)>=1 else file_path
+    data = pyconll.load_from_file(file_path)
+
+    examples = []
+    guid_index = 0
+    label_set = set()
+    for sentence in data:
+        words = []
+        labels = []
+        skip_until = None
+        surface_token = None
+        for token in sentence:
+            if skip_until is not None:
+                if skip_until != token.id:
+                    continue
+                else:
+                    words.append(surface_token)
+                    labels.append(token.upos)
+                    surface_token = None
+                    skip_until = None
+                    continue
+            elif '-' in token.id:
+                surface_token = token.form
+                skip_until = token.id.split('-')[-1]
+                continue
+            else:
+                words.append(token.form)
+                labels.append(token.upos)
+        if words:
+            label_set = label_set.union(set(labels))
+            examples.append(InputExample(guid="{}-{}".format(mode, guid_index), words=words, labels=labels))
+            guid_index += 1
+
+    labels = list(label_set)
+    labels.sort()
+    print('Labels:')
+    print('\n'.join(labels))
+    return examples
 
 def read_examples_from_file(data_dir, mode):
     file_path = os.path.join(data_dir, "{}.txt".format(mode))
