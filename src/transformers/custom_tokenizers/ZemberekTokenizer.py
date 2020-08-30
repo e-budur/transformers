@@ -19,12 +19,8 @@ class ZemberekTokenizer(object):
 
   def init(self):
     global _JVM_started
-    if isJVMStarted() == True:
-      print('Stopping JVM...')
-      self.turn_off_morphological_analyzer()
-      _JVM_started = False
-
     if isJVMStarted() == False:
+        print('starting JVM...')
         self.turn_on_morphological_analyzer()
 
     self.morphology = JClass('zemberek.morphology.TurkishMorphology').createWithDefaults()
