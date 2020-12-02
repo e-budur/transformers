@@ -1,5 +1,5 @@
 ---
-language: english
+language: en
 tags:
 - exbert
 license: apache-2.0
@@ -93,9 +93,9 @@ output = model(**encoded_input)
 and in TensorFlow:
 
 ```python
-from transformers import BertTokenizer, BertModel
+from transformers import BertTokenizer, TFBertModel
 tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-model = BertModel.from_pretrained("bert-base-uncased")
+model = TFBertModel.from_pretrained("bert-base-uncased")
 text = "Replace me by any text you'd like."
 encoded_input = tokenizer(text, return_tensors='tf')
 output = model(encoded_input)
@@ -227,5 +227,5 @@ Glue test results:
 ```
 
 <a href="https://huggingface.co/exbert/?model=bert-base-uncased">
-	<img width="300px" src="https://hf-dinosaur.huggingface.co/exbert/button.png">
+	<img width="300px" src="https://cdn-media.huggingface.co/exbert/button.png">
 </a>

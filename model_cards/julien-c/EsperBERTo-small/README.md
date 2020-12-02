@@ -1,6 +1,6 @@
 ---
-language: esperanto
-thumbnail: https://huggingface.co/blog/assets/EsperBERTo-thumbnail-v2.png
+language: eo
+thumbnail: https://huggingface.co/blog/assets/01_how-to-train/EsperBERTo-thumbnail-v2.png
 widget:
 - text: "Jen la komenco de bela <mask>."
 - text: "Uno du <mask>"
@@ -17,7 +17,7 @@ widget:
 - machine name: `galinette`
 
 
-![](https://huggingface.co/blog/assets/EsperBERTo-thumbnail-v2.png)
+![](https://huggingface.co/blog/assets/01_how-to-train/EsperBERTo-thumbnail-v2.png)
 
 ## Example pipeline
 

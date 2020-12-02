@@ -30,6 +30,7 @@ from torch.utils.data import DataLoader, SequentialSampler, Subset
 from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm
 
+import transformers
 from transformers import (
     AutoConfig,
     AutoModelForSequenceClassification,
@@ -41,6 +42,7 @@ from transformers import (
     glue_processors,
     set_seed,
 )
+from transformers.trainer_utils import is_main_process
 
 
 logger = logging.getLogger(__name__)
@@ -66,9 +68,9 @@ def print_2d_tensor(tensor):
 def compute_heads_importance(
     args, model, eval_dataloader, compute_entropy=True, compute_importance=True, head_mask=None, actually_pruned=False
 ):
-    """ This method shows how to compute:
-        - head attention entropy
-        - head importance scores according to http://arxiv.org/abs/1905.10650
+    """This method shows how to compute:
+    - head attention entropy
+    - head importance scores according to http://arxiv.org/abs/1905.10650
     """
     # Prepare our tensors
     n_layers, n_heads = model.config.num_hidden_layers, model.config.num_attention_heads
@@ -150,8 +152,8 @@ def compute_heads_importance(
 
 
 def mask_heads(args, model, eval_dataloader):
-    """ This method shows how to mask head (set some heads to zero), to test the effect on the network,
-        based on the head importance scores, as described in Michel et al. (http://arxiv.org/abs/1905.10650)
+    """This method shows how to mask head (set some heads to zero), to test the effect on the network,
+    based on the head importance scores, as described in Michel et al. (http://arxiv.org/abs/1905.10650)
     """
     _, head_importance, preds, labels = compute_heads_importance(args, model, eval_dataloader, compute_entropy=False)
     preds = np.argmax(preds, axis=1) if args.output_mode == "classification" else np.squeeze(preds)
@@ -201,8 +203,8 @@ def mask_heads(args, model, eval_dataloader):
 
 
 def prune_heads(args, model, eval_dataloader, head_mask):
-    """ This method shows how to prune head (remove heads weights) based on
-        the head importance scores as described in Michel et al. (http://arxiv.org/abs/1905.10650)
+    """This method shows how to prune head (remove heads weights) based on
+    the head importance scores as described in Michel et al. (http://arxiv.org/abs/1905.10650)
     """
     # Try pruning and test time speedup
     # Pruning is like masking but we actually remove the masked weights
@@ -296,7 +298,7 @@ def main():
         "--cache_dir",
         default=None,
         type=str,
-        help="Where do you want to store the pre-trained models downloaded from s3",
+        help="Where do you want to store the pre-trained models downloaded from huggingface.co",
     )
     parser.add_argument(
         "--data_subset", type=int, default=-1, help="If > 0: limit the data to a subset of data_subset instances."
@@ -368,6 +370,11 @@ def main():
     # Setup logging
     logging.basicConfig(level=logging.INFO if args.local_rank in [-1, 0] else logging.WARN)
     logger.info("device: {} n_gpu: {}, distributed: {}".format(args.device, args.n_gpu, bool(args.local_rank != -1)))
+    # Set the verbosity to info of the Transformers logger (on main process only):
+    if is_main_process(args.local_rank):
+        transformers.utils.logging.set_verbosity_info()
+        transformers.utils.logging.enable_default_handler()
+        transformers.utils.logging.enable_explicit_format()
 
     # Set seeds
     set_seed(args.seed)
@@ -395,7 +402,8 @@ def main():
         cache_dir=args.cache_dir,
     )
     tokenizer = AutoTokenizer.from_pretrained(
-        args.tokenizer_name if args.tokenizer_name else args.model_name_or_path, cache_dir=args.cache_dir,
+        args.tokenizer_name if args.tokenizer_name else args.model_name_or_path,
+        cache_dir=args.cache_dir,
     )
     model = AutoModelForSequenceClassification.from_pretrained(
         args.model_name_or_path,

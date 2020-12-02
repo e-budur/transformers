@@ -31,6 +31,7 @@ from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm, trange
 
+import transformers
 from transformers import (
     WEIGHTS_NAME,
     AdamW,
@@ -41,6 +42,7 @@ from transformers import (
     MMBTForClassification,
     get_linear_schedule_with_warmup,
 )
+from transformers.trainer_utils import is_main_process
 from utils_mmimdb import ImageEncoder, JsonlDataset, collate_fn, get_image_transforms, get_mmimdb_labels
 
 
@@ -348,7 +350,7 @@ def main():
         "--cache_dir",
         default=None,
         type=str,
-        help="Where do you want to store the pre-trained models downloaded from s3",
+        help="Where do you want to store the pre-trained models downloaded from huggingface.co",
     )
     parser.add_argument(
         "--max_seq_length",
@@ -476,7 +478,11 @@ def main():
         bool(args.local_rank != -1),
         args.fp16,
     )
-
+    # Set the verbosity to info of the Transformers logger (on main process only):
+    if is_main_process(args.local_rank):
+        transformers.utils.logging.set_verbosity_info()
+        transformers.utils.logging.enable_default_handler()
+        transformers.utils.logging.enable_explicit_format()
     # Set seed
     set_seed(args)
 
@@ -521,10 +527,6 @@ def main():
 
     # Saving best-practices: if you use defaults names for the model, you can reload it using from_pretrained()
     if args.do_train and (args.local_rank == -1 or torch.distributed.get_rank() == 0):
-        # Create output directory if needed
-        if not os.path.exists(args.output_dir) and args.local_rank in [-1, 0]:
-            os.makedirs(args.output_dir)
-
         logger.info("Saving model checkpoint to %s", args.output_dir)
         # Save a trained model, configuration and tokenizer using `save_pretrained()`.
         # They can then be reloaded using `from_pretrained()`
@@ -551,7 +553,7 @@ def main():
             checkpoints = list(
                 os.path.dirname(c) for c in sorted(glob.glob(args.output_dir + "/**/" + WEIGHTS_NAME, recursive=True))
             )
-            logging.getLogger("transformers.modeling_utils").setLevel(logging.WARN)  # Reduce logging
+
         logger.info("Evaluate the following checkpoints: %s", checkpoints)
         for checkpoint in checkpoints:
             global_step = checkpoint.split("-")[-1] if len(checkpoints) > 1 else ""

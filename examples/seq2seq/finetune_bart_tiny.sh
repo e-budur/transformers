@@ -1,7 +1,7 @@
 # Script for verifying that run_bart_sum can be invoked from its directory
 
 # Get tiny dataset with cnn_dm format (4 examples for train, val, test)
-wget https://s3.amazonaws.com/datasets.huggingface.co/summarization/cnn_tiny.tgz
+wget https://cdn-datasets.huggingface.co/summarization/cnn_tiny.tgz
 tar -xzvf cnn_tiny.tgz
 rm cnn_tiny.tgz
 
@@ -12,7 +12,7 @@ export OUTPUT_DIR=${CURRENT_DIR}/${OUTPUT_DIR_NAME}
 # Make output directory if it doesn't exist
 mkdir -p $OUTPUT_DIR
 
-# Add parent directory to python path to access lightning_base.py and utils.py
+# Add parent directory to python path to access lightning_base.py and testing_utils.py
 export PYTHONPATH="../":"${PYTHONPATH}"
 python finetune.py \
 --data_dir=cnn_tiny/ \
@@ -23,7 +23,7 @@ python finetune.py \
 --output_dir=$OUTPUT_DIR \
 --num_train_epochs=1  \
 --gpus=0 \
---do_train $@
+--do_train "$@"
 
 rm -rf cnn_tiny
 rm -rf $OUTPUT_DIR

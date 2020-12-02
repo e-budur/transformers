@@ -29,6 +29,7 @@ from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm, trange
 
+import transformers
 from transformers import (
     MODEL_FOR_QUESTION_ANSWERING_MAPPING,
     WEIGHTS_NAME,
@@ -45,6 +46,7 @@ from transformers.data.metrics.squad_metrics import (
     squad_evaluate,
 )
 from transformers.data.processors.squad import SquadResult, SquadV1Processor, SquadV2Processor
+from transformers.trainer_utils import is_main_process
 
 
 try:
@@ -187,7 +189,7 @@ def train(args, train_dataset, model, tokenizer):
                 "end_positions": batch[4],
             }
 
-            if args.model_type in ["xlm", "roberta", "distilbert", "camembert"]:
+            if args.model_type in ["xlm", "roberta", "distilbert", "camembert", "bart", "longformer"]:
                 del inputs["token_type_ids"]
 
             if args.model_type in ["xlnet", "xlm"]:
@@ -240,8 +242,6 @@ def train(args, train_dataset, model, tokenizer):
                 # Save model checkpoint
                 if args.local_rank in [-1, 0] and args.save_steps > 0 and global_step % args.save_steps == 0:
                     output_dir = os.path.join(args.output_dir, "checkpoint-{}".format(global_step))
-                    if not os.path.exists(output_dir):
-                        os.makedirs(output_dir)
                     # Take care of distributed/parallel training
                     model_to_save = model.module if hasattr(model, "module") else model
                     model_to_save.save_pretrained(output_dir)
@@ -302,7 +302,7 @@ def evaluate(args, model, tokenizer, prefix=""):
                 "token_type_ids": batch[2],
             }
 
-            if args.model_type in ["xlm", "roberta", "distilbert", "camembert"]:
+            if args.model_type in ["xlm", "roberta", "distilbert", "camembert", "bart", "longformer"]:
                 del inputs["token_type_ids"]
 
             feature_indices = batch[3]
@@ -315,14 +315,13 @@ def evaluate(args, model, tokenizer, prefix=""):
                     inputs.update(
                         {"langs": (torch.ones(batch[0].shape, dtype=torch.int64) * args.lang_id).to(args.device)}
                     )
-
             outputs = model(**inputs)
 
         for i, feature_index in enumerate(feature_indices):
             eval_feature = features[feature_index.item()]
             unique_id = int(eval_feature.unique_id)
 
-            output = [to_list(output[i]) for output in outputs]
+            output = [to_list(output[i]) for output in outputs.to_tuple()]
 
             # Some models (XLNet, XLM) use 5 arguments for their predictions, while the other "simpler"
             # models only use two.
@@ -533,7 +532,7 @@ def main():
         "--cache_dir",
         default="",
         type=str,
-        help="Where do you want to store the pre-trained models downloaded from s3",
+        help="Where do you want to store the pre-trained models downloaded from huggingface.co",
     )
 
     parser.add_argument(
@@ -715,7 +714,11 @@ def main():
         bool(args.local_rank != -1),
         args.fp16,
     )
-
+    # Set the verbosity to info of the Transformers logger (on main process only):
+    if is_main_process(args.local_rank):
+        transformers.utils.logging.set_verbosity_info()
+        transformers.utils.logging.enable_default_handler()
+        transformers.utils.logging.enable_explicit_format()
     # Set seed
     set_seed(args)
 
@@ -733,6 +736,7 @@ def main():
         args.tokenizer_name if args.tokenizer_name else args.model_name_or_path,
         do_lower_case=args.do_lower_case,
         cache_dir=args.cache_dir if args.cache_dir else None,
+        use_fast=False,  # SquadDataset is not compatible with Fast tokenizers which have a smarter overflow handeling
     )
     model = AutoModelForQuestionAnswering.from_pretrained(
         args.model_name_or_path,
@@ -768,10 +772,6 @@ def main():
 
     # Save the trained model and the tokenizer
     if args.do_train and (args.local_rank == -1 or torch.distributed.get_rank() == 0):
-        # Create output directory if needed
-        if not os.path.exists(args.output_dir) and args.local_rank in [-1, 0]:
-            os.makedirs(args.output_dir)
-
         logger.info("Saving model checkpoint to %s", args.output_dir)
         # Save a trained model, configuration and tokenizer using `save_pretrained()`.
         # They can then be reloaded using `from_pretrained()`
@@ -785,7 +785,10 @@ def main():
 
         # Load a trained model and vocabulary that you have fine-tuned
         model = AutoModelForQuestionAnswering.from_pretrained(args.output_dir)  # , force_download=True)
-        tokenizer = AutoTokenizer.from_pretrained(args.output_dir, do_lower_case=args.do_lower_case)
+
+        # SquadDataset is not compatible with Fast tokenizers which have a smarter overflow handeling
+        # So we use use_fast=False here for now until Fast-tokenizer-compatible-examples are out
+        tokenizer = AutoTokenizer.from_pretrained(args.output_dir, do_lower_case=args.do_lower_case, use_fast=False)
         model.to(args.device)
 
     # Evaluation - we can ask to evaluate all the checkpoints (sub-directories) in a directory
@@ -799,7 +802,7 @@ def main():
                     os.path.dirname(c)
                     for c in sorted(glob.glob(args.output_dir + "/**/" + WEIGHTS_NAME, recursive=True))
                 )
-                logging.getLogger("transformers.modeling_utils").setLevel(logging.WARN)  # Reduce model loading logs
+
         else:
             logger.info("Loading checkpoint %s for evaluation", args.model_name_or_path)
             checkpoints = [args.model_name_or_path]

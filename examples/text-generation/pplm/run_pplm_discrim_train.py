@@ -64,7 +64,7 @@ class Discriminator(torch.nn.Module):
 
     def avg_representation(self, x):
         mask = x.ne(0).unsqueeze(2).repeat(1, 1, self.embed_size).float().to(self.device).detach()
-        hidden, _ = self.encoder.transformer(x)
+        hidden = self.encoder.transformer(x)["last_hidden_state"]
         masked_hidden = hidden * mask
         avg_hidden = torch.sum(masked_hidden, dim=1) / (torch.sum(mask, dim=1).detach() + EPSILON)
         return avg_hidden
@@ -242,7 +242,12 @@ def train_discriminator(
 
         text = torchtext_data.Field()
         label = torchtext_data.Field(sequential=False)
-        train_data, val_data, test_data = datasets.SST.splits(text, label, fine_grained=True, train_subtrees=True,)
+        train_data, val_data, test_data = datasets.SST.splits(
+            text,
+            label,
+            fine_grained=True,
+            train_subtrees=True,
+        )
 
         x = []
         y = []

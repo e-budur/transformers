@@ -15,24 +15,27 @@
 
 
 import os
+import pickle
 import unittest
 
-from transformers.tokenization_bert import WordpieceTokenizer
-from transformers.tokenization_bert_japanese import (
+from transformers import AutoTokenizer
+from transformers.models.bert_japanese.tokenization_bert_japanese import (
     VOCAB_FILES_NAMES,
     BertJapaneseTokenizer,
     CharacterTokenizer,
     MecabTokenizer,
+    WordpieceTokenizer,
 )
+from transformers.testing_utils import custom_tokenizers
 
 from .test_tokenization_common import TokenizerTesterMixin
-from .utils import custom_tokenizers
 
 
 @custom_tokenizers
 class BertJapaneseTokenizationTest(TokenizerTesterMixin, unittest.TestCase):
 
     tokenizer_class = BertJapaneseTokenizer
+    space_between_special_tokens = True
 
     def setUp(self):
         super().setUp()
@@ -87,16 +90,58 @@ class BertJapaneseTokenizationTest(TokenizerTesterMixin, unittest.TestCase):
         self.assertListEqual(tokens, ["こんにちは", "、", "世界", "。", "こん", "##ばんは", "、", "世界", "。"])
         self.assertListEqual(tokenizer.convert_tokens_to_ids(tokens), [3, 12, 10, 14, 4, 9, 12, 10, 14])
 
-    def test_mecab_tokenizer(self):
-        tokenizer = MecabTokenizer()
+    def test_pickle_mecab_tokenizer(self):
+        tokenizer = self.tokenizer_class(self.vocab_file, word_tokenizer_type="mecab")
+        self.assertIsNotNone(tokenizer)
+
+        text = "こんにちは、世界。\nこんばんは、世界。"
+        tokens = tokenizer.tokenize(text)
+        self.assertListEqual(tokens, ["こんにちは", "、", "世界", "。", "こん", "##ばんは", "、", "世界", "。"])
+        self.assertListEqual(tokenizer.convert_tokens_to_ids(tokens), [3, 12, 10, 14, 4, 9, 12, 10, 14])
+
+        filename = os.path.join(self.tmpdirname, "tokenizer.bin")
+        with open(filename, "wb") as handle:
+            pickle.dump(tokenizer, handle)
+
+        with open(filename, "rb") as handle:
+            tokenizer_new = pickle.load(handle)
+
+        tokens_loaded = tokenizer_new.tokenize(text)
+
+        self.assertListEqual(tokens, tokens_loaded)
+
+    def test_mecab_tokenizer_ipadic(self):
+        tokenizer = MecabTokenizer(mecab_dic="ipadic")
 
         self.assertListEqual(
             tokenizer.tokenize(" \tｱｯﾌﾟﾙストアでiPhone８ が  \n 発売された　。  "),
             ["アップルストア", "で", "iPhone", "8", "が", "発売", "さ", "れ", "た", "。"],
         )
 
+    def test_mecab_tokenizer_unidic_lite(self):
+        try:
+            tokenizer = MecabTokenizer(mecab_dic="unidic_lite")
+        except ModuleNotFoundError:
+            return
+
+        self.assertListEqual(
+            tokenizer.tokenize(" \tｱｯﾌﾟﾙストアでiPhone８ が  \n 発売された　。  "),
+            ["アップル", "ストア", "で", "iPhone", "8", "が", "発売", "さ", "れ", "た", "。"],
+        )
+
+    def test_mecab_tokenizer_unidic(self):
+        try:
+            tokenizer = MecabTokenizer(mecab_dic="unidic")
+        except ModuleNotFoundError:
+            return
+
+        self.assertListEqual(
+            tokenizer.tokenize(" \tｱｯﾌﾟﾙストアでiPhone８ が  \n 発売された　。  "),
+            ["アップル", "ストア", "で", "iPhone", "8", "が", "発売", "さ", "れ", "た", "。"],
+        )
+
     def test_mecab_tokenizer_lower(self):
-        tokenizer = MecabTokenizer(do_lower_case=True)
+        tokenizer = MecabTokenizer(do_lower_case=True, mecab_dic="ipadic")
 
         self.assertListEqual(
             tokenizer.tokenize(" \tｱｯﾌﾟﾙストアでiPhone８ が  \n 発売された　。  "),
@@ -118,7 +163,7 @@ class BertJapaneseTokenizationTest(TokenizerTesterMixin, unittest.TestCase):
         )
 
     def test_mecab_tokenizer_no_normalize(self):
-        tokenizer = MecabTokenizer(normalize_text=False)
+        tokenizer = MecabTokenizer(normalize_text=False, mecab_dic="ipadic")
 
         self.assertListEqual(
             tokenizer.tokenize(" \tｱｯﾌﾟﾙストアでiPhone８ が  \n 発売された　。  "),
@@ -223,3 +268,11 @@ class BertJapaneseCharacterTokenizationTest(TokenizerTesterMixin, unittest.TestC
         # 2 is for "[CLS]", 3 is for "[SEP]"
         assert encoded_sentence == [2] + text + [3]
         assert encoded_pair == [2] + text + [3] + text_2 + [3]
+
+
+@custom_tokenizers
+class AutoTokenizerCustomTest(unittest.TestCase):
+    def test_tokenizer_bert_japanese(self):
+        EXAMPLE_BERT_JAPANESE_ID = "cl-tohoku/bert-base-japanese"
+        tokenizer = AutoTokenizer.from_pretrained(EXAMPLE_BERT_JAPANESE_ID)
+        self.assertIsInstance(tokenizer, BertJapaneseTokenizer)
