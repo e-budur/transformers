@@ -573,7 +573,7 @@ def main():
     )
     parser.add_argument('--tensorboard_log_dir', type=str, default=None, help="For logging directory of tensorboard.")
 
-    parser.add_argument("--zemberek_path", default=None, type=str, required=True,
+    parser.add_argument("--zemberek_path", default=None, type=str, required=False,
                         help="The zemberek library path.")
     parser.add_argument("--java_home_path", default=None, type=str, required=False,
                         help="The java home path.")
