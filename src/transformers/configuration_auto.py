@@ -19,6 +19,7 @@ import logging
 from collections import OrderedDict
 
 from .configuration_albert import ALBERT_PRETRAINED_CONFIG_ARCHIVE_MAP, AlbertConfig
+from .configuration_bert_custom import BertCustomConfig
 from .configuration_bert import BERT_PRETRAINED_CONFIG_ARCHIVE_MAP, BertConfig
 from .configuration_camembert import CAMEMBERT_PRETRAINED_CONFIG_ARCHIVE_MAP, CamembertConfig
 from .configuration_ctrl import CTRL_PRETRAINED_CONFIG_ARCHIVE_MAP, CTRLConfig
@@ -69,6 +70,7 @@ CONFIG_MAPPING = OrderedDict(
         ("xlm-roberta", XLMRobertaConfig,),
         ("roberta", RobertaConfig,),
         ("flaubert", FlaubertConfig,),
+        ("bertcustom", BertCustomConfig,),
         ("bert", BertConfig,),
         ("openai-gpt", OpenAIGPTConfig,),
         ("gpt2", GPT2Config,),
