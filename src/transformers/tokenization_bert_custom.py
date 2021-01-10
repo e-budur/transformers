@@ -21,7 +21,7 @@ import os
 import unicodedata
 
 import tokenizers as tk
-from tokenizer_factory import Tokenizers
+from morphological_tokenizers.tokenizer_factory import Tokenizers
 from .tokenization_bert import load_vocab
 from .tokenization_utils import PreTrainedTokenizer
 
