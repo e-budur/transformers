@@ -29,12 +29,13 @@ logger = logging.getLogger(__name__)
 
 
 CUSTOM_TOKENIZER_CONFIG_FILE = "custom_tokenizer_config.json"
+CUSTOM_TOKENIZER_MODEL_FILE = "model.dat"
 
 class BertCustomTokenizer(PreTrainedTokenizer):
 
     def __init__(
         self,
-        config_file_path,
+        tokenizer_path,
         unk_token="[UNK]",
         sep_token="[SEP]",
         pad_token="[PAD]",
@@ -42,7 +43,9 @@ class BertCustomTokenizer(PreTrainedTokenizer):
         mask_token="[MASK]",
         **kwargs
     ):
-        self.tokenizer = Tokenizers.create(config_file_path)
+        config_file_path = os.path.join(tokenizer_path, CUSTOM_TOKENIZER_CONFIG_FILE)
+        model_file_path = os.path.join(tokenizer_path, CUSTOM_TOKENIZER_MODEL_FILE)
+        self.tokenizer = Tokenizers.create(config_file_path, model_file_path)
         vocab_file = self.tokenizer.get_vocab_file_name()
         super().__init__(
             unk_token=unk_token,
@@ -146,7 +149,6 @@ class BertCustomTokenizer(PreTrainedTokenizer):
 
     @classmethod
     def from_pretrained(cls, pretrained_model_name_or_path, *init_inputs, **init_kwargs):
-        config_file_path = os.path.join(pretrained_model_name_or_path, CUSTOM_TOKENIZER_CONFIG_FILE)
-        tokenizer = BertCustomTokenizer(config_file_path, *init_inputs, **init_kwargs)
+        tokenizer = BertCustomTokenizer(pretrained_model_name_or_path, *init_inputs, **init_kwargs)
         return tokenizer
 
