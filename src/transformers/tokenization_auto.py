@@ -22,6 +22,7 @@ from .configuration_auto import (
     BertMorphologyConfig,
     AlbertConfig,
     AutoConfig,
+    BertCustomConfig,
     BertConfig,
     CamembertConfig,
     CTRLConfig,
@@ -38,6 +39,7 @@ from .configuration_auto import (
 )
 from .configuration_utils import PretrainedConfig
 from .tokenization_albert import AlbertTokenizer
+from .tokenization_bert_custom import BertCustomTokenizer
 from .tokenization_morphology import BertMorphologyTokenizer
 from .tokenization_bert import BertTokenizer
 from .tokenization_bert_japanese import BertJapaneseTokenizer
@@ -67,6 +69,7 @@ TOKENIZER_MAPPING = OrderedDict(
         (CamembertConfig, CamembertTokenizer),
         (XLMRobertaConfig, XLMRobertaTokenizer),
         (RobertaConfig, RobertaTokenizer),
+        (BertCustomConfig, BertCustomTokenizer),
         (BertConfig, BertTokenizer),
         (OpenAIGPTConfig, OpenAIGPTTokenizer),
         (GPT2Config, GPT2Tokenizer),

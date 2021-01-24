@@ -24,6 +24,9 @@ import torch
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler, TensorDataset
 from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm, trange
+import argparse
+import os
+import random
 
 from transformers import (
     WEIGHTS_NAME,
@@ -59,7 +62,6 @@ from transformers import glue_compute_metrics as compute_metrics
 from transformers import glue_convert_examples_to_features as convert_examples_to_features
 from transformers import glue_output_modes as output_modes
 from transformers import glue_processors as processors
-from examples.berturk_preprocessor import *
 
 try:
     from torch.utils.tensorboard import SummaryWriter
@@ -403,7 +405,7 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False):
         examples = (
             processor.get_examples_by_split_name(args.data_dir, args.eval_split_name) if evaluate else processor.get_train_examples(args.data_dir)
         )
-        preprocess_examples(examples, args)
+
         features = convert_examples_to_features(
             examples,
             tokenizer,
@@ -574,7 +576,7 @@ def main():
     )
     parser.add_argument('--tensorboard_log_dir', type=str, default=None, help="For logging directory of tensorboard.")
 
-    parser.add_argument("--zemberek_path", default=None, type=str, required=True,
+    parser.add_argument("--zemberek_path", default=None, type=str, required=False,
                         help="The zemberek library path.")
     parser.add_argument("--java_home_path", default=None, type=str, required=False,
                         help="The java home path.")
