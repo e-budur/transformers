@@ -152,3 +152,12 @@ class BertCustomTokenizer(PreTrainedTokenizer):
         tokenizer = BertCustomTokenizer(pretrained_model_name_or_path, *init_inputs, **init_kwargs)
         return tokenizer
 
+    def save_pretrained(self, save_directory):
+        self.tokenizer.save_pretrained(save_directory)
+
+
+    def save_vocabulary(self, save_directory):
+        self.tokenizer.save_vocabulary(save_directory)
+
+
+
