@@ -727,7 +727,7 @@ def main():
 
         # Load a trained model and vocabulary that you have fine-tuned
         model = model_class.from_pretrained(args.output_dir)
-        tokenizer = tokenizer_class.from_pretrained(args.output_dir)
+        # tokenizer = tokenizer_class.from_pretrained(args.output_dir) There is no point of this line since we won't use the saved model. We can add it when we start to use the resulting model
         model.to(args.device)
 
     # Evaluation
