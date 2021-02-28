@@ -286,6 +286,91 @@ def train(args, train_dataset, model, tokenizer, labels, pad_token_label_id):
     return global_step, tr_loss / global_step
 
 
+def create_token_sequence_pairs(tokens):
+    root_token_indexes = []
+    full_token_indexes = []
+
+    root_tokens = []
+    full_tokens = []
+
+    tmp_root_token_indexes = []
+    tmp_full_token_indexes = []
+
+    tmp_root_tokens = []
+    tmp_full_tokens = []
+
+    for token_index, token in enumerate(tokens):
+        if token.startswith("##"):
+            tmp_full_token_indexes.append(token_index)
+            tmp_full_tokens.append(token)
+            pass
+        else:
+            if len(tmp_root_token_indexes) > 0:
+                root_token_indexes.append(tmp_root_token_indexes)
+                full_token_indexes.append(tmp_full_token_indexes)
+
+                root_tokens.append(tmp_root_tokens)
+                full_tokens.append(tmp_full_tokens)
+
+                tmp_root_token_indexes = []
+                tmp_full_token_indexes = []
+
+                tmp_root_tokens = []
+                tmp_full_tokens = []
+
+            if token_index == len(tokens) -1:
+                break
+            if tokens[token_index + 1].startswith("##"):
+                tmp_root_token_indexes.append(token_index)
+                tmp_full_token_indexes.append(token_index)
+
+                tmp_root_tokens.append(token)
+                tmp_full_tokens.append(token)
+            else:
+                continue
+
+    if len(tmp_root_token_indexes) > 0:
+        root_token_indexes.append(tmp_root_token_indexes)
+        full_token_indexes.append(tmp_full_token_indexes)
+
+        tmp_root_tokens.append(token)
+        tmp_full_tokens.append(token)
+
+    token_sequence_pairs = {
+        "input_tokens": tokens,
+        "root_token_index_lists": root_token_indexes,
+        "full_token_index_lists": full_token_indexes,
+        "root_tokens": root_tokens,
+        "full_tokens": full_tokens,
+    }
+
+    return token_sequence_pairs
+
+
+
+from scipy.spatial.distance import cosine
+
+def lm_compute_metrics(inputs, outputs, tokenizer):
+    all_token_sequence_pairs = []
+    for input_ids in inputs:
+        tokens = tokenizer.convert_ids_to_tokens(input_ids, skip_special_tokens=False)
+        token_sequence_pairs = create_token_sequence_pairs(tokens)
+        all_token_sequence_pairs.append(token_sequence_pairs)
+
+    cos_sims = []
+    for token_sequence_pairs in all_token_sequence_pairs:
+        for root_token_indexes, full_token_indexes in zip(token_sequence_pairs["root_token_index_lists"], token_sequence_pairs["full_token_index_lists"]):
+            root_token_embedding = np.average(outputs[0][root_token_indexes], axis=0)
+            full_token_embedding = np.average(outputs[0][full_token_indexes], axis=0)
+            cos_sim = 1-cosine(root_token_embedding, full_token_embedding)
+            cos_sims.append(cos_sim)
+
+    avg_cos_sim_of_segmented_tokens = np.average(cos_sims)
+    result = {
+        "avg_cos_sim_of_segmented_tokens": avg_cos_sim_of_segmented_tokens
+    }
+    return result
+
 def evaluate(args, model, tokenizer, labels, pad_token_label_id, mode, prefix=""):
     eval_dataset = load_and_cache_examples(args, tokenizer, labels, pad_token_label_id, mode=mode)
 
@@ -306,6 +391,8 @@ def evaluate(args, model, tokenizer, labels, pad_token_label_id, mode, prefix=""
     nb_eval_steps = 0
     preds = None
     out_label_ids = None
+    input_label_ids = None
+    output_hidden_states = None
     model.eval()
     for batch in tqdm(eval_dataloader, desc="Evaluating"):
         batch = tuple(t.to(args.device) for t in batch)
@@ -327,9 +414,13 @@ def evaluate(args, model, tokenizer, labels, pad_token_label_id, mode, prefix=""
         if preds is None:
             preds = logits.detach().cpu().numpy()
             out_label_ids = inputs["labels"].detach().cpu().numpy()
+            input_label_ids = inputs["input_ids"].detach().cpu().numpy()
+            output_hidden_states = outputs[2][12].detach().cpu().numpy()
         else:
             preds = np.append(preds, logits.detach().cpu().numpy(), axis=0)
             out_label_ids = np.append(out_label_ids, inputs["labels"].detach().cpu().numpy(), axis=0)
+            input_label_ids = np.append(input_label_ids, inputs["input_ids"].detach().cpu().numpy(), axis=0)
+            output_hidden_states = np.append(output_hidden_states, outputs[2][12].detach().cpu().numpy(), axis=0)
 
     eval_loss = eval_loss / nb_eval_steps
     preds = np.argmax(preds, axis=2)
@@ -356,6 +447,9 @@ def evaluate(args, model, tokenizer, labels, pad_token_label_id, mode, prefix=""
         "macro-recall": recall_score(out_label_list, preds_list, average='macro'),
         "macro-f1": f1_score(out_label_list, preds_list, average='macro'),
     }
+
+    result = lm_compute_metrics(input_label_ids, output_hidden_states, tokenizer)
+    results.update(result)
 
     logger.info("***** Eval results %s *****", prefix)
     for key in sorted(results.keys()):
@@ -386,6 +480,7 @@ def load_and_cache_examples(args, tokenizer, labels, pad_token_label_id, mode):
             examples = read_examples_from_conll_file(args.data_dir, mode)
         else:
             examples = read_examples_from_file(args.data_dir, mode)
+
         features = convert_examples_to_features(
             examples,
             labels,
