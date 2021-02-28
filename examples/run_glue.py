@@ -500,7 +500,7 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False):
         examples = (
             processor.get_examples_by_split_name(args.data_dir, args.eval_split_name) if evaluate else processor.get_train_examples(args.data_dir)
         )
-        examples = examples[:10]
+
         features = convert_examples_to_features(
             examples,
             tokenizer,
