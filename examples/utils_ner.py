@@ -156,11 +156,17 @@ def convert_examples_to_features(
             tokens.extend(word_tokens)
             # Use the real label id for the first token of the word, and padding ids for the remaining tokens
             if ner_label_strategy.lower() == "last":
-                label_ids.extend([pad_token_label_id] * (len(word_tokens) - 1) + [label_map[label]] )
+                label_ids.extend([pad_token_label_id] * (len(word_tokens) - 1) + [label_map[label]])
             elif ner_label_strategy.lower() == "all":
-                label_ids.extend([label_map[label]] + [pad_token_label_id] * (len(word_tokens) - 1))
-            else:#default: ner_label_strategy="first"
                 label_ids.extend([label_map[label]] * len(word_tokens))
+            elif ner_label_strategy.lower() == "first_last":
+                label_ids.extend([label_map[label]])
+                if len(word_tokens) > 2:
+                    label_ids.extend([pad_token_label_id] * (len(word_tokens) - 2))
+                if len(word_tokens) > 1:
+                    label_ids.extend([label_map[label]])
+            else:  # default: ner_label_strategy="first"
+                label_ids.extend([label_map[label]] + [pad_token_label_id] * (len(word_tokens) - 1))
 
         # Account for [CLS] and [SEP] with "- 2" and with "- 3" for RoBERTa.
         special_tokens_count = 3 if sep_token_extra else 2
