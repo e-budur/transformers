@@ -369,11 +369,13 @@ def load_and_cache_examples(args, tokenizer, labels, pad_token_label_id, mode):
         torch.distributed.barrier()  # Make sure only the first process in distributed training process the dataset, and the others will use the cache
 
     # Load data features from cache or dataset file
-    cached_features_file = os.path.join(args.data_dir, 'cached_{}_{}_{}_{}'.format(
+    cached_features_file = os.path.join(args.data_dir, 'cached_{}_{}_{}_{}_{}'.format(
         args.model_type,
         args.eval_split_name if evaluate else 'train',
         list(filter(None, args.model_name_or_path.split('/'))).pop(),
-        str(args.max_seq_length)))
+        str(args.max_seq_length),
+        args.ner_label_strategy
+    ))
 
     if os.path.exists(cached_features_file) and not args.overwrite_cache:
         logger.info("Loading features from cached file %s", cached_features_file)
