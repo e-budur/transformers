@@ -83,7 +83,7 @@ def _is_whitespace(c):
     return False
 
 
-def squad_convert_example_to_features(example, max_seq_length, doc_stride, max_query_length, is_training):
+def squad_convert_example_to_features(example, max_seq_length, doc_stride, max_query_length, is_training, tokenizer):
     features = []
     if is_training and not example.is_impossible:
         # Get start and end position
@@ -254,14 +254,8 @@ def squad_convert_example_to_features(example, max_seq_length, doc_stride, max_q
         )
     return features
 
-
-def squad_convert_example_to_features_init(tokenizer_for_convert):
-    global tokenizer
-    tokenizer = tokenizer_for_convert
-
-
 def squad_convert_examples_to_features(
-    examples, tokenizer, max_seq_length, doc_stride, max_query_length, is_training, return_dataset=False, threads=1
+    examples, tokenizer, max_seq_length, doc_stride, max_query_length, is_training, return_dataset=False
 ):
     """
     Converts a list of examples into a list of features that can be directly given as input to a model.
@@ -277,8 +271,6 @@ def squad_convert_examples_to_features(
         return_dataset: Default False. Either 'pt' or 'tf'.
             if 'pt': returns a torch.data.TensorDataset,
             if 'tf': returns a tf.data.Dataset
-        threads: multiple processing threadsa-smi
-
 
     Returns:
         list of :class:`~transformers.data.processors.squad.SquadFeatures`
@@ -300,22 +292,20 @@ def squad_convert_examples_to_features(
 
     # Defining helper methods
     features = []
-    threads = min(threads, cpu_count())
-    with Pool(threads, initializer=squad_convert_example_to_features_init, initargs=(tokenizer,)) as p:
-        annotate_ = partial(
-            squad_convert_example_to_features,
+
+    features = []
+
+    for example in tqdm(examples, total=len(examples), desc="convert squad examples to features"):
+        feature = squad_convert_example_to_features(
+            example=example,
             max_seq_length=max_seq_length,
             doc_stride=doc_stride,
             max_query_length=max_query_length,
             is_training=is_training,
+            tokenizer=tokenizer
         )
-        features = list(
-            tqdm(
-                p.imap(annotate_, examples, chunksize=32),
-                total=len(examples),
-                desc="convert squad examples to features",
-            )
-        )
+        features.append(feature)
+
     new_features = []
     unique_id = 1000000000
     example_index = 0
