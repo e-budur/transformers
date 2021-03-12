@@ -368,7 +368,7 @@ def evaluate(args, model, tokenizer, prefix=""):
                 )
 
             else:
-                start_logits, end_logits = output
+                start_logits, end_logits = output[:2]
                 result = SquadResult(unique_id, start_logits, end_logits)
 
             all_results.append(result)
