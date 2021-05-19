@@ -59,8 +59,8 @@ from transformers.data.metrics.squad_metrics import (
     squad_evaluate,
 )
 from transformers.data.processors.squad import SquadResult, SquadV1Processor, SquadV2Processor
-
-
+from losses import edl_mse_loss, edl_digamma_loss, edl_log_loss, relu_evidence
+from helpers import one_hot_embedding
 try:
     from torch.utils.tensorboard import SummaryWriter
 except ImportError:
@@ -95,8 +95,17 @@ def set_seed(args):
 def to_list(tensor):
     return tensor.detach().cpu().tolist()
 
+def calculate_uncertainty(logits=None, positions=None, criterion=None, epoch=None, device='cpu', num_classes=2):
+    positions = one_hot_embedding(labels=positions, num_classes=num_classes)
+    loss = criterion(
+        logits, positions.float(), epoch, num_classes, 10, device)
 
-def train(args, train_dataset, model, tokenizer):
+    evidence = relu_evidence(logits)
+    alpha = evidence + 1
+    uncertainty = num_classes / torch.sum(alpha, dim=1, keepdim=True)
+    return loss, uncertainty
+
+def train(args, train_dataset, model, tokenizer, criterion=None):
     """ Train the model """
     if args.local_rank in [-1, 0]:
         tb_writer = SummaryWriter(log_dir=args.tensorboard_log_dir)
@@ -192,7 +201,7 @@ def train(args, train_dataset, model, tokenizer):
     # Added here for reproductibility
     set_seed(args)
 
-    for _ in train_iterator:
+    for epoch_num in train_iterator:
         epoch_iterator = tqdm(train_dataloader, desc="Iteration", disable=args.local_rank not in [-1, 0])
         for step, batch in enumerate(epoch_iterator):
 
@@ -227,6 +236,13 @@ def train(args, train_dataset, model, tokenizer):
             outputs = model(**inputs)
             # model outputs are always tuple in transformers (see doc)
             loss = outputs[0]
+
+            if args.uncertainty:
+                start_logits, end_logits = outputs[1:3]
+                start_loss_with_uncertainty, start_uncertainty = calculate_uncertainty(logits=start_logits, positions=batch[3], criterion=criterion, epoch=epoch_num, num_classes=start_logits.size(1), device=args.device)
+                end_loss_with_uncertainty, end_uncertainty = calculate_uncertainty(logits=end_logits, positions=batch[4], criterion=criterion, epoch=epoch_num,num_classes=start_logits.size(1),device=args.device)
+
+                loss = (start_loss_with_uncertainty + end_loss_with_uncertainty) / 2
 
             if args.n_gpu > 1:
                 loss = loss.mean()  # mean() to average on multi-gpu parallel (not distributed) training
@@ -688,6 +704,17 @@ def main():
     # required by e-budur
     parser.add_argument('--tensorboard_log_dir', type=str, default=None, help="For logging directory of tensorboard.")
 
+    # Adopted from https://github.com/dougbrion/pytorch-classification-uncertainty ##########################
+    parser.add_argument("--uncertainty", action="store_true",
+                        help="Use uncertainty or not.")
+    uncertainty_type_group = parser.add_mutually_exclusive_group()
+    uncertainty_type_group.add_argument("--mse", action="store_true",
+                                        help="Set this argument when using uncertainty. Sets loss function to Expected Mean Square Error.")
+    uncertainty_type_group.add_argument("--digamma", action="store_true",
+                                        help="Set this argument when using uncertainty. Sets loss function to Expected Cross Entropy.")
+    uncertainty_type_group.add_argument("--log", action="store_true",
+                                        help="Set this argument when using uncertainty. Sets loss function to Negative Log of the Expected Likelihood.")
+    # ########################################################################################################
 
     args = parser.parse_args()
 
@@ -759,11 +786,26 @@ def main():
         args.config_name if args.config_name else args.model_name_or_path,
         cache_dir=args.cache_dir if args.cache_dir else None,
     )
+
+    # Adapted from https://github.com/dougbrion/pytorch-classification-uncertainty
+    criterion = None
+    if args.uncertainty:
+        if args.mse:
+            criterion = edl_mse_loss
+        elif args.digamma:
+            criterion = edl_digamma_loss
+        elif args.log:
+            criterion = edl_log_loss
+        else:
+            parser.error(
+                "Invalid params for --uncertainty. Valid params: --mse, --log, --digamma")
+
     tokenizer = tokenizer_class.from_pretrained(
         args.tokenizer_name if args.tokenizer_name else args.model_name_or_path,
         do_lower_case=args.do_lower_case,
         cache_dir=args.cache_dir if args.cache_dir else None,
     )
+
     model = model_class.from_pretrained(
         args.model_name_or_path,
         from_tf=bool(".ckpt" in args.model_name_or_path),
@@ -793,7 +835,7 @@ def main():
     # Training
     if args.do_train:
         train_dataset = load_and_cache_examples(args, tokenizer, evaluate=False, output_examples=False)
-        global_step, tr_loss = train(args, train_dataset, model, tokenizer)
+        global_step, tr_loss = train(args, train_dataset, model, tokenizer, criterion)
         logger.info(" global_step = %s, average loss = %s", global_step, tr_loss)
 
     # Save the trained model and the tokenizer
